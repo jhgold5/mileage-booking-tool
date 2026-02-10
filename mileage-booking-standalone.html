@@ -1,0 +1,554 @@
+<!DOCTYPE html>
+<html lang="ko">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>마일/포인트 발권 검색기 - 여공법</title>
+    <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+    <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
+    <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
+    <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
+    <style>
+        body {
+            margin: 0;
+            padding: 0;
+            font-family: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif;
+            background: #ffffff;
+        }
+        
+        @keyframes spin {
+            from { transform: rotate(0deg); }
+            to { transform: rotate(360deg); }
+        }
+        
+        input[type="number"]::-webkit-inner-spin-button,
+        input[type="number"]::-webkit-outer-spin-button {
+            -webkit-appearance: none;
+            margin: 0;
+        }
+        
+        input[type="number"] {
+            -moz-appearance: textfield;
+        }
+        
+        ::-webkit-scrollbar {
+            width: 8px;
+        }
+        
+        ::-webkit-scrollbar-track {
+            background: #f5f5f5;
+        }
+        
+        ::-webkit-scrollbar-thumb {
+            background: #ccc;
+            border-radius: 4px;
+        }
+        
+        ::-webkit-scrollbar-thumb:hover {
+            background: #999;
+        }
+    </style>
+</head>
+<body>
+    <div id="root"></div>
+
+    <script type="text/babel">
+        const { useState } = React;
+
+        // Lucide Icons (간단한 SVG 아이콘으로 대체)
+        const Plane = ({ size = 24, color = "currentColor" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+                <path d="M17.8 19.2 16 11l3.5-3.5C21 6 21.5 4 21 3c-1-.5-3 0-4.5 1.5L13 8 4.8 6.2c-.5-.1-.9.1-1.1.5l-.3.5c-.2.5-.1 1 .3 1.3L9 12l-2 3H4l-1 1 3 2 2 3 1-1v-3l3-2 3.5 5.3c.3.4.8.5 1.3.3l.5-.2c.4-.3.6-.7.5-1.2z"/>
+            </svg>
+        );
+
+        const Search = ({ size = 24, color = "currentColor" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+                <circle cx="11" cy="11" r="8"/>
+                <path d="m21 21-4.35-4.35"/>
+            </svg>
+        );
+
+        const ArrowRight = ({ size = 24, color = "currentColor" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill="none" stroke={color} strokeWidth="2">
+                <path d="M5 12h14M12 5l7 7-7 7"/>
+            </svg>
+        );
+
+        const Star = ({ size = 24, color = "currentColor", fill = "none" }) => (
+            <svg width={size} height={size} viewBox="0 0 24 24" fill={fill} stroke={color} strokeWidth="2">
+                <polygon points="12 2 15.09 8.26 22 9.27 17 14.14 18.18 21.02 12 17.77 5.82 21.02 7 14.14 2 9.27 8.91 8.26 12 2"/>
+            </svg>
+        );
+
+        function MileageBookingTool() {
+            const [step, setStep] = useState(1);
+            const [formData, setFormData] = useState({
+                departureAirport: '',
+                arrivalAirport: '',
+                pointsList: [],
+                passengers: 1,
+            });
+
+            const [selectedProgram, setSelectedProgram] = useState('');
+            const [pointsAmount, setPointsAmount] = useState('');
+            const [departureSearch, setDepartureSearch] = useState('');
+            const [arrivalSearch, setArrivalSearch] = useState('');
+            const [showDepartureSuggestions, setShowDepartureSuggestions] = useState(false);
+            const [showArrivalSuggestions, setShowArrivalSuggestions] = useState(false);
+            const [recommendations, setRecommendations] = useState(null);
+            const [loading, setLoading] = useState(false);
+
+            const loyaltyPrograms = [
+                { name: '대한항공 스카이패스', code: 'KE', category: '항공', alliance: '스카이팀', color: '#0d3b8c' },
+                { name: '아시아나 아시아나클럽', code: 'OZ', category: '항공', alliance: '스타얼라이언스', color: '#e31e24' },
+                { name: '아메리칸 AAdvantage', code: 'AA', category: '항공', alliance: '원월드', color: '#0078d2' },
+                { name: '유나이티드 마일리지플러스', code: 'UA', category: '항공', alliance: '스타얼라이언스', color: '#002244' },
+                { name: '델타 스카이마일스', code: 'DL', category: '항공', alliance: '스카이팀', color: '#c8102e' },
+                { name: '아멕스 멤버십 리워드', code: 'AMEX', category: '카드', alliance: '-', color: '#006fcf' },
+                { name: '체이스 얼티밋 리워드', code: 'Chase', category: '카드', alliance: '-', color: '#117aca' },
+            ];
+
+            const popularAirports = [
+                { code: 'ICN', name: '인천국제공항', city: '서울/인천' },
+                { code: 'GMP', name: '김포국제공항', city: '서울/김포' },
+                { code: 'NRT', name: '나리타국제공항', city: '도쿄/나리타' },
+                { code: 'HND', name: '하네다공항', city: '도쿄/하네다' },
+                { code: 'LAX', name: 'LAX공항', city: '로스앤젤레스' },
+                { code: 'JFK', name: 'JFK공항', city: '뉴욕' },
+                { code: 'SFO', name: 'SFO공항', city: '샌프란시스코' },
+                { code: 'CDG', name: '샤를드골공항', city: '파리' },
+            ];
+
+            const filterAirports = (searchTerm) => {
+                if (!searchTerm) return popularAirports.slice(0, 8);
+                const term = searchTerm.toLowerCase();
+                return popularAirports.filter(airport => 
+                    airport.code.toLowerCase().includes(term) ||
+                    airport.name.toLowerCase().includes(term) ||
+                    airport.city.toLowerCase().includes(term)
+                );
+            };
+
+            const addPoints = () => {
+                if (selectedProgram && pointsAmount && parseInt(pointsAmount) > 0) {
+                    const isDuplicate = formData.pointsList.some(item => item.program === selectedProgram);
+                    
+                    if (isDuplicate) {
+                        setFormData(prev => ({
+                            ...prev,
+                            pointsList: prev.pointsList.map(item =>
+                                item.program === selectedProgram
+                                    ? { ...item, points: parseInt(pointsAmount) }
+                                    : item
+                            )
+                        }));
+                    } else {
+                        setFormData(prev => ({
+                            ...prev,
+                            pointsList: [...prev.pointsList, {
+                                program: selectedProgram,
+                                points: parseInt(pointsAmount)
+                            }]
+                        }));
+                    }
+                    
+                    setSelectedProgram('');
+                    setPointsAmount('');
+                }
+            };
+
+            const removePoints = (program) => {
+                setFormData(prev => ({
+                    ...prev,
+                    pointsList: prev.pointsList.filter(item => item.program !== program)
+                }));
+            };
+
+            const analyzePoints = () => {
+                setLoading(true);
+                
+                setTimeout(() => {
+                    const totalPoints = formData.pointsList.reduce((sum, item) => sum + item.points, 0);
+                    
+                    setRecommendations({
+                        flights: [
+                            {
+                                airline: '대한항공',
+                                route: `${formData.departureAirport} → ${formData.arrivalAirport}`,
+                                points: Math.floor(totalPoints * 0.4),
+                                class: '비즈니스',
+                                seats: '2석 가능',
+                                value: '₩3,200,000 상당',
+                                rating: 4.8
+                            },
+                            {
+                                airline: '아시아나항공',
+                                route: `${formData.departureAirport} → ${formData.arrivalAirport}`,
+                                points: Math.floor(totalPoints * 0.35),
+                                class: '이코노미',
+                                seats: '4석 가능',
+                                value: '₩1,800,000 상당',
+                                rating: 4.6
+                            }
+                        ]
+                    });
+                    
+                    setLoading(false);
+                    setStep(3);
+                }, 1500);
+            };
+
+            return (
+                <div style={{
+                    minHeight: '100vh',
+                    background: '#ffffff',
+                    padding: '40px 20px'
+                }}>
+                    <div style={{ maxWidth: '1100px', margin: '0 auto' }}>
+                        <div style={{
+                            textAlign: 'center',
+                            marginBottom: '50px',
+                            paddingBottom: '30px',
+                            borderBottom: '2px solid #f0f0f0'
+                        }}>
+                            <h1 style={{
+                                fontSize: '2.2rem',
+                                fontWeight: '700',
+                                margin: '0 0 10px 0',
+                                color: '#1a1a1a'
+                            }}>
+                                마일/포인트 발권 검색기
+                            </h1>
+                            <p style={{
+                                fontSize: '1rem',
+                                color: '#666',
+                                margin: 0
+                            }}>
+                                보유하신 마일리지와 포인트로 최적의 항공권을 찾아드립니다
+                            </p>
+                        </div>
+
+                        <div style={{
+                            display: 'flex',
+                            justifyContent: 'center',
+                            gap: '30px',
+                            marginBottom: '40px'
+                        }}>
+                            {[
+                                { num: 1, label: '항공편 선택' },
+                                { num: 2, label: '포인트 입력' },
+                                { num: 3, label: '발권 옵션' }
+                            ].map((s, i) => (
+                                <div key={i} style={{
+                                    display: 'flex',
+                                    alignItems: 'center',
+                                    gap: '10px',
+                                    opacity: step >= s.num ? 1 : 0.4
+                                }}>
+                                    <div style={{
+                                        width: '36px',
+                                        height: '36px',
+                                        borderRadius: '50%',
+                                        background: step >= s.num ? '#1a73e8' : '#e0e0e0',
+                                        color: '#fff',
+                                        display: 'flex',
+                                        alignItems: 'center',
+                                        justifyContent: 'center',
+                                        fontWeight: '600'
+                                    }}>
+                                        {s.num}
+                                    </div>
+                                    <span style={{ fontSize: '0.9rem', color: '#555' }}>{s.label}</span>
+                                </div>
+                            ))}
+                        </div>
+
+                        {step === 1 && (
+                            <div style={{
+                                background: '#fff',
+                                borderRadius: '12px',
+                                padding: '40px',
+                                border: '1px solid #e0e0e0',
+                                boxShadow: '0 2px 8px rgba(0,0,0,0.05)',
+                                maxWidth: '700px',
+                                margin: '0 auto'
+                            }}>
+                                <h2 style={{ fontSize: '1.4rem', marginBottom: '30px', fontWeight: '600' }}>
+                                    항공편 정보
+                                </h2>
+                                
+                                <div style={{ marginBottom: '25px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500', color: '#555' }}>
+                                        출발 공항
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={departureSearch}
+                                        onChange={(e) => setDepartureSearch(e.target.value)}
+                                        placeholder="공항 코드 입력 (예: ICN)"
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            fontSize: '1rem',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '8px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                </div>
+
+                                <div style={{ marginBottom: '25px' }}>
+                                    <label style={{ display: 'block', marginBottom: '8px', fontSize: '0.9rem', fontWeight: '500', color: '#555' }}>
+                                        도착 공항
+                                    </label>
+                                    <input
+                                        type="text"
+                                        value={arrivalSearch}
+                                        onChange={(e) => setArrivalSearch(e.target.value)}
+                                        placeholder="공항 코드 입력 (예: NRT)"
+                                        style={{
+                                            width: '100%',
+                                            padding: '14px 16px',
+                                            fontSize: '1rem',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '8px',
+                                            boxSizing: 'border-box'
+                                        }}
+                                    />
+                                </div>
+
+                                <button
+                                    onClick={() => {
+                                        if (departureSearch && arrivalSearch) {
+                                            setFormData({ ...formData, departureAirport: departureSearch, arrivalAirport: arrivalSearch });
+                                            setStep(2);
+                                        }
+                                    }}
+                                    style={{
+                                        width: '100%',
+                                        padding: '16px',
+                                        fontSize: '1rem',
+                                        fontWeight: '600',
+                                        background: '#1a73e8',
+                                        color: '#fff',
+                                        border: 'none',
+                                        borderRadius: '8px',
+                                        cursor: 'pointer'
+                                    }}
+                                >
+                                    다음 단계
+                                </button>
+                            </div>
+                        )}
+
+                        {step === 2 && (
+                            <div style={{
+                                background: '#fff',
+                                borderRadius: '12px',
+                                padding: '40px',
+                                border: '1px solid #e0e0e0',
+                                maxWidth: '900px',
+                                margin: '0 auto'
+                            }}>
+                                <h2 style={{ fontSize: '1.4rem', marginBottom: '30px', fontWeight: '600' }}>
+                                    보유 마일/포인트 추가
+                                </h2>
+
+                                <div style={{ background: '#f8f9fa', padding: '25px', borderRadius: '10px', marginBottom: '30px' }}>
+                                    <div style={{ display: 'flex', gap: '12px', marginBottom: '15px' }}>
+                                        <select
+                                            value={selectedProgram}
+                                            onChange={(e) => setSelectedProgram(e.target.value)}
+                                            style={{
+                                                flex: 2,
+                                                padding: '13px 14px',
+                                                fontSize: '0.95rem',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '8px'
+                                            }}
+                                        >
+                                            <option value="">선택하세요</option>
+                                            <optgroup label="━━ 항공 마일리지 ━━">
+                                                {loyaltyPrograms.filter(p => p.category === '항공').map((p, i) => (
+                                                    <option key={i} value={p.name}>[{p.code}] {p.name}</option>
+                                                ))}
+                                            </optgroup>
+                                            <optgroup label="━━ 신용카드 포인트 ━━">
+                                                {loyaltyPrograms.filter(p => p.category === '카드').map((p, i) => (
+                                                    <option key={i} value={p.name}>[{p.code}] {p.name}</option>
+                                                ))}
+                                            </optgroup>
+                                        </select>
+                                        <input
+                                            type="number"
+                                            value={pointsAmount}
+                                            onChange={(e) => setPointsAmount(e.target.value)}
+                                            placeholder="포인트"
+                                            style={{
+                                                flex: 1,
+                                                padding: '13px 14px',
+                                                fontSize: '0.95rem',
+                                                border: '1px solid #ddd',
+                                                borderRadius: '8px'
+                                            }}
+                                        />
+                                        <button
+                                            onClick={addPoints}
+                                            style={{
+                                                padding: '13px 24px',
+                                                fontSize: '0.95rem',
+                                                fontWeight: '600',
+                                                background: '#1a73e8',
+                                                color: '#fff',
+                                                border: 'none',
+                                                borderRadius: '8px',
+                                                cursor: 'pointer'
+                                            }}
+                                        >
+                                            추가
+                                        </button>
+                                    </div>
+                                </div>
+
+                                {formData.pointsList.length > 0 && (
+                                    <div style={{ marginBottom: '30px' }}>
+                                        {formData.pointsList.map((item, idx) => {
+                                            const program = loyaltyPrograms.find(p => p.name === item.program);
+                                            return (
+                                                <div key={idx} style={{
+                                                    background: '#fff',
+                                                    padding: '18px 20px',
+                                                    borderRadius: '10px',
+                                                    border: '1px solid #e0e0e0',
+                                                    marginBottom: '12px',
+                                                    display: 'flex',
+                                                    justifyContent: 'space-between',
+                                                    alignItems: 'center'
+                                                }}>
+                                                    <div>
+                                                        <div style={{ fontSize: '1rem', fontWeight: '600', marginBottom: '5px' }}>
+                                                            {item.program}
+                                                        </div>
+                                                        <div style={{ fontSize: '1.3rem', fontWeight: '700', color: '#1a73e8' }}>
+                                                            {item.points.toLocaleString()} P
+                                                        </div>
+                                                    </div>
+                                                    <button
+                                                        onClick={() => removePoints(item.program)}
+                                                        style={{
+                                                            padding: '8px 18px',
+                                                            background: '#fff',
+                                                            color: '#d32f2f',
+                                                            border: '1px solid #d32f2f',
+                                                            borderRadius: '6px',
+                                                            cursor: 'pointer'
+                                                        }}
+                                                    >
+                                                        삭제
+                                                    </button>
+                                                </div>
+                                            );
+                                        })}
+                                    </div>
+                                )}
+
+                                <div style={{ display: 'flex', gap: '12px' }}>
+                                    <button
+                                        onClick={() => setStep(1)}
+                                        style={{
+                                            padding: '16px 28px',
+                                            background: '#fff',
+                                            color: '#666',
+                                            border: '1px solid #ddd',
+                                            borderRadius: '8px',
+                                            cursor: 'pointer'
+                                        }}
+                                    >
+                                        이전
+                                    </button>
+                                    <button
+                                        onClick={analyzePoints}
+                                        disabled={formData.pointsList.length === 0}
+                                        style={{
+                                            flex: 1,
+                                            padding: '16px',
+                                            fontSize: '1rem',
+                                            fontWeight: '600',
+                                            background: formData.pointsList.length > 0 ? '#1a73e8' : '#e0e0e0',
+                                            color: formData.pointsList.length > 0 ? '#fff' : '#999',
+                                            border: 'none',
+                                            borderRadius: '8px',
+                                            cursor: formData.pointsList.length > 0 ? 'pointer' : 'not-allowed'
+                                        }}
+                                    >
+                                        발권 옵션 검색
+                                    </button>
+                                </div>
+                            </div>
+                        )}
+
+                        {step === 3 && !loading && recommendations && (
+                            <div>
+                                <h2 style={{ fontSize: '1.5rem', marginBottom: '25px', fontWeight: '600' }}>
+                                    발권 가능 항공편
+                                </h2>
+                                {recommendations.flights.map((flight, idx) => (
+                                    <div key={idx} style={{
+                                        background: '#fff',
+                                        borderRadius: '12px',
+                                        padding: '28px',
+                                        border: '1px solid #e0e0e0',
+                                        marginBottom: '16px'
+                                    }}>
+                                        <div style={{ display: 'flex', justifyContent: 'space-between', marginBottom: '18px' }}>
+                                            <div>
+                                                <div style={{ fontSize: '1.4rem', fontWeight: '700', marginBottom: '8px' }}>
+                                                    {flight.airline}
+                                                </div>
+                                                <div style={{ fontSize: '1.05rem', color: '#666' }}>
+                                                    {flight.route}
+                                                </div>
+                                            </div>
+                                            <div style={{ textAlign: 'right' }}>
+                                                <div style={{ fontSize: '1.6rem', fontWeight: '700', color: '#1a73e8' }}>
+                                                    {flight.points.toLocaleString()} P
+                                                </div>
+                                                <div style={{ fontSize: '0.85rem', color: '#888' }}>
+                                                    {flight.value}
+                                                </div>
+                                            </div>
+                                        </div>
+                                        <div style={{ display: 'flex', gap: '12px' }}>
+                                            <span style={{
+                                                padding: '6px 14px',
+                                                background: '#e3f2fd',
+                                                color: '#1976d2',
+                                                borderRadius: '6px',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                {flight.class}
+                                            </span>
+                                            <span style={{
+                                                padding: '6px 14px',
+                                                background: '#e8f5e9',
+                                                color: '#2e7d32',
+                                                borderRadius: '6px',
+                                                fontSize: '0.9rem'
+                                            }}>
+                                                {flight.seats}
+                                            </span>
+                                        </div>
+                                    </div>
+                                ))}
+                            </div>
+                        )}
+                    </div>
+                </div>
+            );
+        }
+
+        ReactDOM.render(<MileageBookingTool />, document.getElementById('root'));
+    </script>
+</body>
+</html>
