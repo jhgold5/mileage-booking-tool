@@ -3,27 +3,218 @@
 <head>
   <meta charset="UTF-8">
   <meta name="viewport" content="width=device-width, initial-scale=1.0">
-  <title>마일/포인트 발권 차트 계산기 - 여공법</title>
-  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700&display=swap" rel="stylesheet">
+  <title>마일/포인트 발권 플래너 - 여공법</title>
+  <link href="https://fonts.googleapis.com/css2?family=Noto+Sans+KR:wght@400;500;600;700;900&family=JetBrains+Mono:wght@400;500;600;700&display=swap" rel="stylesheet">
   <script crossorigin src="https://unpkg.com/react@18/umd/react.production.min.js"></script>
   <script crossorigin src="https://unpkg.com/react-dom@18/umd/react-dom.production.min.js"></script>
   <script src="https://unpkg.com/@babel/standalone/babel.min.js"></script>
   <style>
-    * { box-sizing: border-box; }
-    body { margin: 0; padding: 0; font-family: 'Noto Sans KR', -apple-system, sans-serif; background: #fff; }
+    :root {
+      --c-primary: #0052CC;
+      --c-primary-light: #E6F0FF;
+      --c-primary-dark: #003A8C;
+      --c-accent: #FF6B35;
+      --c-success: #0B8A3E;
+      --c-success-bg: #E6F8ED;
+      --c-success-border: #8AD4A6;
+      --c-warning: #D97706;
+      --c-warning-bg: #FFF8EB;
+      --c-warning-border: #FCD579;
+      --c-danger: #C92A2A;
+      --c-danger-bg: #FFF1F0;
+      --c-gray-50: #F9FAFB;
+      --c-gray-100: #F3F4F6;
+      --c-gray-200: #E5E7EB;
+      --c-gray-300: #D1D5DB;
+      --c-gray-400: #9CA3AF;
+      --c-gray-500: #6B7280;
+      --c-gray-600: #4B5563;
+      --c-gray-700: #374151;
+      --c-gray-800: #1F2937;
+      --c-gray-900: #111827;
+      --font-sans: 'Noto Sans KR', -apple-system, BlinkMacSystemFont, sans-serif;
+      --font-mono: 'JetBrains Mono', 'Menlo', monospace;
+      --radius-sm: 6px;
+      --radius-md: 10px;
+      --radius-lg: 14px;
+      --shadow-sm: 0 1px 3px rgba(0,0,0,0.06), 0 1px 2px rgba(0,0,0,0.04);
+      --shadow-md: 0 4px 12px rgba(0,0,0,0.08);
+      --shadow-lg: 0 8px 30px rgba(0,0,0,0.1);
+    }
+    * { box-sizing: border-box; margin: 0; padding: 0; }
+    body { font-family: var(--font-sans); background: var(--c-gray-50); color: var(--c-gray-800); -webkit-font-smoothing: antialiased; }
     input[type="number"]::-webkit-inner-spin-button,
-    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; margin: 0; }
+    input[type="number"]::-webkit-outer-spin-button { -webkit-appearance: none; }
     input[type="number"] { -moz-appearance: textfield; }
-    ::-webkit-scrollbar { width: 6px; }
-    ::-webkit-scrollbar-track { background: #f5f5f5; }
-    ::-webkit-scrollbar-thumb { background: #ccc; border-radius: 4px; }
+    ::-webkit-scrollbar { width: 5px; }
+    ::-webkit-scrollbar-track { background: transparent; }
+    ::-webkit-scrollbar-thumb { background: var(--c-gray-300); border-radius: 10px; }
+
+    /* Animations */
+    @keyframes fadeUp { from { opacity: 0; transform: translateY(16px); } to { opacity: 1; transform: translateY(0); } }
+    @keyframes pulse { 0%, 100% { opacity: 1; } 50% { opacity: .5; } }
+    @keyframes planeMove { 0% { transform: translateX(-8px) rotate(-2deg); } 50% { transform: translateX(8px) rotate(2deg); } 100% { transform: translateX(-8px) rotate(-2deg); } }
+    @keyframes toastIn { from { opacity:0; transform:translateY(20px) scale(0.95); } to { opacity:1; transform:translateY(0) scale(1); } }
+    @keyframes toastOut { from { opacity:1; transform:translateY(0) scale(1); } to { opacity:0; transform:translateY(20px) scale(0.95); } }
+    .fade-up { animation: fadeUp 0.4s ease-out both; }
+    .fade-up-1 { animation-delay: 0.05s; }
+    .fade-up-2 { animation-delay: 0.1s; }
+    .fade-up-3 { animation-delay: 0.15s; }
+    .fade-up-4 { animation-delay: 0.2s; }
+    .loading-plane { animation: planeMove 1.5s ease-in-out infinite; display: inline-block; }
+
+    /* Layout */
+    .container { max-width: 920px; margin: 0 auto; padding: 32px 20px 60px; }
+    .card { background: #fff; border: 1px solid var(--c-gray-200); border-radius: var(--radius-lg); padding: 32px; box-shadow: var(--shadow-sm); }
+    .card-inner { max-width: 680px; margin: 0 auto; }
+
+    /* Form elements */
+    .label { display: block; margin-bottom: 8px; font-size: 0.88rem; font-weight: 600; color: var(--c-gray-600); letter-spacing: -0.01em; }
+    .label-optional { font-weight: 400; color: var(--c-gray-400); margin-left: 6px; }
+    .input { width: 100%; padding: 12px 16px; font-size: 0.95rem; border: 1.5px solid var(--c-gray-200); border-radius: var(--radius-md); outline: none; color: var(--c-gray-800); font-family: var(--font-sans); background: #fff; transition: border-color 0.2s, box-shadow 0.2s; }
+    .input:focus { border-color: var(--c-primary); box-shadow: 0 0 0 3px rgba(0,82,204,0.1); }
+    .input::placeholder { color: var(--c-gray-400); }
+    .select { appearance: none; background-image: url("data:image/svg+xml,%3Csvg xmlns='http://www.w3.org/2000/svg' width='12' height='8'%3E%3Cpath d='M1 1l5 5 5-5' stroke='%236B7280' stroke-width='1.5' fill='none'/%3E%3C/svg%3E"); background-repeat: no-repeat; background-position: right 14px center; padding-right: 36px; }
+
+    /* Buttons */
+    .btn { padding: 12px 24px; font-size: 0.95rem; font-weight: 600; border: none; border-radius: var(--radius-md); cursor: pointer; font-family: var(--font-sans); transition: all 0.2s; display: inline-flex; align-items: center; justify-content: center; gap: 6px; }
+    .btn:active { transform: scale(0.97); }
+    .btn-primary { background: var(--c-primary); color: #fff; }
+    .btn-primary:hover { background: var(--c-primary-dark); }
+    .btn-primary:disabled { background: var(--c-gray-200); color: var(--c-gray-400); cursor: not-allowed; transform: none; }
+    .btn-outline { background: #fff; color: var(--c-gray-600); border: 1.5px solid var(--c-gray-200); }
+    .btn-outline:hover { border-color: var(--c-gray-400); background: var(--c-gray-50); }
+    .btn-accent { background: var(--c-accent); color: #fff; }
+    .btn-accent:hover { background: #e55a25; }
+    .btn-sm { padding: 6px 14px; font-size: 0.82rem; }
+    .btn-book { background: var(--c-primary); color: #fff; border: none; padding: 6px 14px; font-size: 0.76rem; font-weight: 600; border-radius: var(--radius-sm); cursor: pointer; width: 100%; transition: all 0.15s; }
+    .btn-book:hover { background: var(--c-primary-dark); transform: scale(1.03); box-shadow: 0 2px 8px rgba(37,99,235,0.3); }
+    .btn-book:active { transform: scale(0.97); }
+    .ticket-item { transition: all 0.2s; }
+    .ticket-item:hover { box-shadow: 0 2px 8px rgba(0,0,0,0.06); }
+    .btn-full { width: 100%; padding: 14px; }
+    .btn-link { padding: 0; background: none; border: none; color: var(--c-primary); font-size: 0.82rem; font-weight: 500; cursor: pointer; text-decoration: underline; font-family: var(--font-sans); }
+    .btn-link:hover { color: var(--c-primary-dark); }
+
+    /* Trip type buttons */
+    .trip-btn { flex: 1; padding: 10px 8px; font-size: 0.86rem; font-weight: 500; border: 1.5px solid var(--c-gray-200); border-radius: var(--radius-md); background: #fff; color: var(--c-gray-500); cursor: pointer; font-family: var(--font-sans); transition: all 0.2s; }
+    .trip-btn.active { border-color: var(--c-primary); background: var(--c-primary-light); color: var(--c-primary); font-weight: 600; }
+
+    /* Chips */
+    .chip { display: inline-flex; align-items: center; gap: 5px; padding: 5px 12px; border-radius: 20px; font-size: 0.82rem; font-weight: 500; }
+    .chip-blue { background: var(--c-primary-light); color: var(--c-primary); border: 1px solid #B3D4FF; }
+    .chip-remove { cursor: pointer; font-weight: 700; opacity: 0.6; transition: opacity 0.2s; }
+    .chip-remove:hover { opacity: 1; }
+
+    /* Stepper */
+    .stepper { display: flex; justify-content: center; gap: 0; margin-bottom: 36px; position: relative; }
+    .step-item { display: flex; align-items: center; gap: 8px; position: relative; z-index: 1; cursor: pointer; padding: 4px 8px; border-radius: 8px; transition: background 0.2s; }
+    .step-item:hover { background: rgba(0,82,204,0.04); }
+    .step-item.disabled { cursor: default; opacity: 0.35; }
+    .step-item.disabled:hover { background: transparent; }
+    .step-num { width: 32px; height: 32px; border-radius: 50%; display: flex; align-items: center; justify-content: center; font-weight: 700; font-size: 0.85rem; transition: all 0.3s; }
+    .step-num.active { background: var(--c-primary); color: #fff; }
+    .step-num.done { background: var(--c-success); color: #fff; }
+    .step-num.pending { background: var(--c-gray-200); color: var(--c-gray-400); }
+    .step-label { font-size: 0.84rem; color: var(--c-gray-500); font-weight: 500; }
+    .step-connector { width: 48px; height: 2px; background: var(--c-gray-200); margin: 0 8px; align-self: center; border-radius: 1px; }
+    .step-connector.done { background: var(--c-success); }
+
+    /* Result card */
+    .result-card { background: #fff; border: 1.5px solid var(--c-gray-200); border-radius: var(--radius-lg); padding: 24px; margin-bottom: 14px; transition: border-color 0.2s, box-shadow 0.2s; }
+    .result-card.affordable { border-color: var(--c-success-border); box-shadow: 0 2px 12px rgba(11,138,62,0.06); }
+    .result-header { display: flex; align-items: flex-start; justify-content: space-between; margin-bottom: 16px; gap: 12px; flex-wrap: wrap; }
+    .result-icon { width: 42px; height: 42px; border-radius: 10px; display: flex; align-items: center; justify-content: center; flex-shrink: 0; }
+    .result-icon-text { color: #fff; font-weight: 700; font-size: 0.65rem; font-family: var(--font-mono); }
+    .cabin-grid { display: grid; gap: 8px; }
+    .cabin-cell { padding: 14px 10px; border-radius: var(--radius-md); text-align: center; border: 1px solid; }
+    .cabin-cell.can-afford { background: var(--c-success-bg); border-color: var(--c-success-border); }
+    .cabin-cell.cannot-afford { background: var(--c-gray-50); border-color: var(--c-gray-200); }
+    .cabin-cell.maybe { background: var(--c-warning-bg); border-color: var(--c-warning-border); }
+    .cabin-cell.maybe-possible { background: #F0FDF4; border-color: #86EFAC; }
+    .badge { display: inline-block; padding: 3px 10px; border-radius: 20px; font-size: 0.7rem; font-weight: 600; color: #fff; }
+
+    /* Dropdown */
+    .dropdown { position: absolute; top: 100%; left: 0; right: 0; margin-top: 4px; background: #fff; border: 1.5px solid var(--c-gray-200); border-radius: var(--radius-md); max-height: 290px; overflow-y: auto; z-index: 100; box-shadow: var(--shadow-lg); }
+    .dropdown-item { padding: 10px 16px; cursor: pointer; display: flex; align-items: center; gap: 10px; border-bottom: 1px solid var(--c-gray-100); transition: background 0.15s; }
+    .dropdown-item:last-child { border-bottom: none; }
+    .dropdown-item:hover, .dropdown-item.highlighted { background: var(--c-primary-light); }
+    .dropdown-header { padding: 8px 16px 6px; font-size: 0.72rem; color: var(--c-gray-400); font-weight: 700; letter-spacing: 0.06em; border-bottom: 1px solid var(--c-gray-100); background: var(--c-gray-50); text-transform: uppercase; }
+
+    /* Fuel surcharge info */
+    .fuel-badge { font-size: 0.72rem; padding: 2px 7px; border-radius: 4px; font-weight: 600; margin-left: 6px; }
+    .fuel-low { background: #E6F8ED; color: #0B8A3E; }
+    .fuel-mid { background: #FFF8EB; color: #D97706; }
+    .fuel-high { background: #FFF1F0; color: #C92A2A; }
+
+    /* Notice box */
+    .notice { padding: 14px 18px; border-radius: var(--radius-md); font-size: 0.82rem; line-height: 1.7; }
+    .notice-warn { background: var(--c-warning-bg); border: 1px solid var(--c-warning-border); color: #92400E; }
+    .notice-info { background: var(--c-primary-light); border: 1px solid #B3D4FF; color: var(--c-primary-dark); }
+    .notice-danger { background: var(--c-danger-bg); border: 1px solid #FCA5A5; color: var(--c-danger); }
+
+    /* Toast notification */
+    .toast-container { position: fixed; bottom: 24px; left: 50%; transform: translateX(-50%); z-index: 9999; pointer-events: none; }
+    .toast { padding: 12px 20px; border-radius: var(--radius-md); font-size: 0.86rem; font-weight: 500; color: #fff; box-shadow: var(--shadow-lg); animation: toastIn 0.3s ease-out; white-space: nowrap; }
+    .toast.hiding { animation: toastOut 0.3s ease-in forwards; }
+    .toast-success { background: var(--c-success); }
+    .toast-info { background: var(--c-primary); }
+    .toast-warn { background: var(--c-warning); }
+
+    /* Sort controls */
+    .sort-bar { display: flex; gap: 6px; margin-bottom: 16px; flex-wrap: wrap; align-items: center; }
+    .sort-btn { padding: 5px 12px; font-size: 0.78rem; font-weight: 500; border: 1px solid var(--c-gray-200); border-radius: 20px; background: #fff; color: var(--c-gray-500); cursor: pointer; font-family: var(--font-sans); transition: all 0.2s; }
+    .sort-btn.active { background: var(--c-primary); color: #fff; border-color: var(--c-primary); }
+    .sort-btn:hover:not(.active) { background: var(--c-gray-50); border-color: var(--c-gray-300); }
+
+    /* Zone warning */
+    .zone-warn { display: flex; align-items: center; gap: 8px; padding: 10px 14px; border-radius: var(--radius-md); background: #FFF8EB; border: 1px solid var(--c-warning-border); font-size: 0.82rem; color: #92400E; margin-top: -8px; margin-bottom: 16px; }
+
+    /* Airport selected state */
+    .airport-selected { display: flex; align-items: center; gap: 10px; padding: 10px 16px; border: 1.5px solid var(--c-primary); border-radius: var(--radius-md); background: var(--c-primary-light); }
+    .airport-code { font-weight: 700; color: var(--c-primary); font-family: var(--font-mono); font-size: 0.95rem; }
+    .airport-clear { cursor: pointer; color: var(--c-gray-400); font-weight: 700; font-size: 1.1rem; padding: 0 4px; line-height: 1; transition: color 0.2s; }
+    .airport-clear:hover { color: var(--c-danger); }
+
+    /* Points list item */
+    .points-item { display: flex; justify-content: space-between; align-items: center; padding: 14px 18px; border: 1px solid var(--c-gray-200); border-radius: var(--radius-md); margin-bottom: 8px; background: #fff; }
+    .points-item-icon { width: 36px; height: 36px; border-radius: 8px; display: flex; align-items: center; justify-content: center; color: #fff; font-weight: 700; font-size: 0.65rem; font-family: var(--font-mono); }
+
+
+
+    /* Passengers stepper */
+    .pax-stepper { display: flex; max-width: 200px; }
+    .pax-btn { width: 46px; height: 46px; font-size: 1.1rem; padding: 0; }
+    .pax-btn-left { border-radius: var(--radius-md) 0 0 var(--radius-md); border-right: none; }
+    .pax-btn-right { border-radius: 0 var(--radius-md) var(--radius-md) 0; border-left: none; }
+    .pax-display { flex: 1; height: 46px; border: 1.5px solid var(--c-gray-200); display: flex; align-items: center; justify-content: center; font-size: 0.95rem; font-weight: 600; font-family: var(--font-mono); }
+
+    /* Responsive */
+    @media (max-width: 640px) {
+      .container { padding: 16px 12px 40px; }
+      .card { padding: 20px 16px; }
+      .cabin-grid { grid-template-columns: 1fr 1fr !important; }
+      .cabin-grid-2 { grid-template-columns: 1fr 1fr !important; }
+      .cabin-grid-1 { grid-template-columns: 1fr !important; }
+      .stepper { gap: 0; }
+      .step-connector { width: 24px; margin: 0 4px; }
+      .step-label { font-size: 0.76rem; }
+      .header-title { font-size: 1.5rem !important; }
+      .trip-btn { font-size: 0.78rem; padding: 9px 4px; }
+      .result-header { flex-direction: column !important; }
+      .btn-row { flex-direction: column; }
+      .btn-row .btn { width: 100%; }
+      .add-row { flex-direction: column; }
+      .add-row > * { min-width: 0 !important; }
+
+    }
   </style>
 </head>
 <body>
 <div id="root"></div>
 <script type="text/babel">
 
-const { useState } = React;
+const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
 // ─── 공항 데이터 ──────────────────────────────────────
 const AIRPORTS = [
@@ -187,7 +378,7 @@ const AIRPORTS = [
   {code:'APW',name:'파라레레공항',city:'아피아 (사모아)'},{code:'HIR',name:'호니아라공항',city:'호니아라'},
   // 아프리카
   {code:'JNB',name:'OR탐보공항',city:'요하네스버그'},{code:'CPT',name:'케이프타운공항',city:'케이프타운'},
-  {code:'DUR',name:'킹샤카공항',city:'더반'},{code:'CAI',name:'카이로국제공항',city:'카이로'},
+  {code:'DUR',name:'킹샤카공항',city:'더반'},
   {code:'CMN',name:'무함마드5세공항',city:'카사블랑카'},{code:'RAK',name:'메나라공항',city:'마라케시'},
   {code:'TUN',name:'카르타고공항',city:'튀니스'},{code:'ALG',name:'후아리부메디엔공항',city:'알제'},
   {code:'NBO',name:'조모케냐타공항',city:'나이로비'},{code:'ADD',name:'볼레공항',city:'아디스아바바'},
@@ -198,32 +389,26 @@ const AIRPORTS = [
   {code:'RUN',name:'롤랑가로스공항',city:'레위니옹'},
 ];
 
+// ─── O(1) 공항 인덱스 맵 (성능 개선) ────────────────────
+const AIRPORT_MAP = {};
+AIRPORTS.forEach(a => { AIRPORT_MAP[a.code] = a; });
+
 // ─── 공항 → Zone 매핑 ─────────────────────────────────
 const AIRPORT_ZONE = {
-  // 한국 (A)
   ICN:'A',GMP:'A',PUS:'A',CJU:'A',TAE:'A',CJJ:'A',MWX:'A',KWJ:'A',RSU:'A',USN:'A',
-  // 일본 (B)
   NRT:'B',HND:'B',KIX:'B',ITM:'B',NGO:'B',FUK:'B',CTS:'B',OKA:'B',HIJ:'B',
-  KOJ:'B',KMJ:'B',SDJ:'B',AOJ:'B',KMQ:'B',UKB:'B',TAK:'B',MYJ:'B',OIT:'B',
-  NGS:'B',ISG:'B',MMY:'B',
-  // 중국/홍콩/대만 (C)
+  KOJ:'B',KMJ:'B',SDJ:'B',AOJ:'B',KMQ:'B',UKB:'B',TAK:'B',MYJ:'B',OIT:'B',NGS:'B',ISG:'B',MMY:'B',
   PEK:'C',PKX:'C',PVG:'C',SHA:'C',CAN:'C',HKG:'C',TPE:'C',TSA:'C',MFM:'C',
   CTU:'C',KMG:'C',XIY:'C',WUH:'C',CSX:'C',NKG:'C',HAK:'C',SZX:'C',XMN:'C',
   CKG:'C',HGH:'C',TSN:'C',DLC:'C',SHE:'C',HRB:'C',KHH:'C',
-  // 동남아 (D)
   SIN:'D',BKK:'D',DMK:'D',HKT:'D',CNX:'D',KBV:'D',USM:'D',
-  KUL:'D',PEN:'D',BKI:'D',KCH:'D',
-  SGN:'D',HAN:'D',DAD:'D',CXR:'D',PQC:'D',
-  MNL:'D',CEB:'D',
-  DPS:'D',CGK:'D',SUB:'D',UPG:'D',LOP:'D',MDC:'D',
+  KUL:'D',PEN:'D',BKI:'D',KCH:'D',SGN:'D',HAN:'D',DAD:'D',CXR:'D',PQC:'D',
+  MNL:'D',CEB:'D',DPS:'D',CGK:'D',SUB:'D',UPG:'D',LOP:'D',MDC:'D',
   RGN:'D',PNH:'D',REP:'D',VTE:'D',BND:'D',
-  // 중동/남아시아 (E)
   DXB:'E',AUH:'E',DOH:'E',KWI:'E',BAH:'E',MCT:'E',RUH:'E',JED:'E',
   AMM:'E',BEY:'E',TLV:'E',CAI:'E',
   DEL:'E',BOM:'E',BLR:'E',MAA:'E',HYD:'E',CCU:'E',COK:'E',AMD:'E',
-  CMB:'E',KTM:'E',DAC:'E',KHI:'E',LHE:'E',ISB:'E',
-  TAS:'E',ALA:'E',GYD:'E',
-  // 유럽 (F)
+  CMB:'E',KTM:'E',DAC:'E',KHI:'E',LHE:'E',ISB:'E',TAS:'E',ALA:'E',GYD:'E',
   LHR:'F',LGW:'F',STN:'F',CDG:'F',ORY:'F',FRA:'F',MUC:'F',BER:'F',HAM:'F',
   DUS:'F',STR:'F',AMS:'F',BRU:'F',MAD:'F',BCN:'F',PMI:'F',FCO:'F',MXP:'F',
   VCE:'F',NAP:'F',IST:'F',SAW:'F',ATH:'F',HER:'F',ZRH:'F',GVA:'F',VIE:'F',
@@ -232,7 +417,6 @@ const AIRPORT_ZONE = {
   AGP:'F',ALC:'F',BEG:'F',OTP:'F',SOF:'F',LJU:'F',ZAG:'F',DBV:'F',KRK:'F',
   TLL:'F',RIX:'F',VNO:'F',LED:'F',SVO:'F',DME:'F',KIV:'F',SKP:'F',TIA:'F',
   TGD:'F',TBS:'F',EVN:'F',IEV:'F',
-  // 북미 (G)
   JFK:'G',EWR:'G',LGA:'G',BOS:'G',IAD:'G',DCA:'G',MIA:'G',FLL:'G',TPA:'G',
   MCO:'G',ATL:'G',CLT:'G',PHL:'G',BDL:'G',ORD:'G',MDW:'G',DFW:'G',DAL:'G',
   HOU:'G',IAH:'G',DEN:'G',SLC:'G',PHX:'G',TUS:'G',LAX:'G',BUR:'G',LGB:'G',
@@ -241,19 +425,14 @@ const AIRPORT_ZONE = {
   SMF:'G',SJU:'G',
   YYZ:'G',YVR:'G',YYC:'G',YEG:'G',YOW:'G',YUL:'G',YHZ:'G',YWG:'G',
   MEX:'G',CUN:'G',GDL:'G',MTY:'G',
-  // 하와이/괌 (H)
   HNL:'H',OGG:'H',KOA:'H',GUM:'H',
-  // 오세아니아 (I)
   SYD:'I',MEL:'I',BNE:'I',PER:'I',ADL:'I',CBR:'I',OOL:'I',CNS:'I',
   AKL:'I',CHC:'I',WLG:'I',NAN:'I',PPT:'I',NOU:'I',APW:'I',HIR:'I',
-  // 중남미 (J)
   GRU:'J',GIG:'J',BSB:'J',SSA:'J',EZE:'J',AEP:'J',SCL:'J',LIM:'J',
   BOG:'J',MDE:'J',UIO:'J',GYE:'J',MVD:'J',ASU:'J',HAV:'J',PTY:'J',
   SJO:'J',GUA:'J',SAL:'J',SDQ:'J',NAS:'J',
-  // 아프리카 (K)
   JNB:'K',CPT:'K',DUR:'K',CMN:'K',RAK:'K',TUN:'K',ALG:'K',
-  NBO:'K',ADD:'K',DAR:'K',EBB:'K',ACC:'K',LOS:'K',ABV:'K',DKR:'K',
-  ABJ:'K',DSS:'K',RUN:'K',
+  NBO:'K',ADD:'K',DAR:'K',EBB:'K',ACC:'K',LOS:'K',ABV:'K',DKR:'K',ABJ:'K',DSS:'K',RUN:'K',
 };
 
 const ZONE_NAMES = {
@@ -269,13 +448,13 @@ const PROGRAMS = [
   {name:'아메리칸 AAdvantage',code:'AA',color:'#0078d2',cat:'항공'},
   {name:'유나이티드 마일리지플러스',code:'UA',color:'#002244',cat:'항공'},
   {name:'델타 스카이마일스',code:'DL',color:'#c8102e',cat:'항공'},
-  {name:'알래스카 마일리지플랜',code:'AS',color:'#01426a',cat:'항공'},
+  {name:'알래스카 아트모스 리워드',code:'AS',color:'#01426a',cat:'항공'},
   {name:'에어캐나다 에어로플랜',code:'AC',color:'#d52b1e',cat:'항공'},
   {name:'아비안카 라이프마일즈',code:'AV',color:'#d4232a',cat:'항공'},
   {name:'루프트한자 마일즈앤모어',code:'LH',color:'#05164d',cat:'항공'},
   {name:'브리티시 에어웨이스 Avios',code:'BA',color:'#075aaa',cat:'항공'},
   {name:'에어프랑스-KLM 플라잉블루',code:'AF',color:'#002157',cat:'항공'},
-  {name:'이베리아 플러스',code:'IB',color:'#ec1c24',cat:'항공'},
+  {name:'이베리아 Avios',code:'IB',color:'#ec1c24',cat:'항공'},
   {name:'터키항공 마일즈앤스마일즈',code:'TK',color:'#c70a13',cat:'항공'},
   {name:'ANA 마일리지클럽',code:'NH',color:'#15428b',cat:'항공'},
   {name:'JAL 마일리지뱅크',code:'JL',color:'#d62b1f',cat:'항공'},
@@ -293,50 +472,57 @@ const PROGRAMS = [
   {name:'Bilt 리워드',code:'Bilt',color:'#1a1a1a',cat:'카드'},
 ];
 
-// ─── 마일 차트 데이터 ─────────────────────────────────
-// 키: "ZoneA-ZoneB" (알파벳 순 정렬), 값: {E,B,F} 마일 (숫자 or 범위문자열)
+// O(1) 프로그램 인덱스
+const PROGRAM_MAP = {};
+PROGRAMS.forEach(p => { PROGRAM_MAP[p.name] = p; PROGRAM_MAP[p.code] = p; });
+
+// ─── 마일 차트 데이터 (IB 추가, 일부 구간 보강) ──────────
 const CHARTS = {
   KE: {name:'대한항공 스카이패스', note:'스카이팀 파트너 포함',
     r:{'A-B':{E:15000,B:40000,F:80000},'A-C':{E:20000,B:45000,F:80000},
        'A-D':{E:25000,B:60000,F:115000},'A-E':{E:35000,B:70000},
        'A-F':{E:42500,B:80000,F:115000},'A-G':{E:35000,B:80000,F:115000},
        'A-H':{E:25000,B:60000},'A-I':{E:35000,B:80000,F:115000},
+       'A-J':{E:50000,B:100000,F:150000},'A-K':{E:50000,B:100000},
        'B-C':{E:12000,B:30000,F:60000},'B-G':{E:35000,B:80000,F:115000},
-       'C-G':{E:35000,B:80000,F:115000},'F-G':{E:42500,B:80000,F:115000},
+       'C-G':{E:35000,B:80000,F:115000},'D-F':{E:35000,B:70000},
+       'F-G':{E:42500,B:80000,F:115000},
        'G-H':{E:17500,B:35000},'G-I':{E:40000,B:80000,F:115000}}},
   OZ: {name:'아시아나 아시아나클럽', note:'스타얼라이언스 파트너 포함',
     r:{'A-B':{E:12000,B:35000,F:70000},'A-C':{E:17000,B:40000,F:70000},
        'A-D':{E:22000,B:55000,F:105000},'A-E':{E:30000,B:65000},
        'A-F':{E:40000,B:75000,F:115000},'A-G':{E:35000,B:75000,F:115000},
        'A-H':{E:22000,B:55000},'A-I':{E:35000,B:75000,F:115000},
-       'B-G':{E:35000,B:70000,F:115000},'F-G':{E:40000,B:75000,F:115000}}},
+       'B-G':{E:35000,B:70000,F:115000},'D-F':{E:35000,B:65000},
+       'F-G':{E:40000,B:75000,F:115000}}},
   AA: {name:'아메리칸 AAdvantage', note:'원월드 파트너 포함',
     r:{'A-G':{E:35000,B:65000,F:110000},'B-G':{E:30000,B:60000,F:80000},
        'C-G':{E:35000,B:65000,F:110000},'D-G':{E:40000,B:80000,F:110000},
        'F-G':{E:30000,B:57500,F:85000},'G-G':{E:7500,B:15000,F:25000},
        'G-H':{E:17500,B:35000,F:50000},'A-F':{E:42500,B:65000,F:110000},
        'A-B':{E:20000,B:40000,F:60000},'B-F':{E:35000,B:62500,F:85000},
-       'G-I':{E:40000,B:80000,F:110000}}},
+       'G-I':{E:40000,B:80000,F:110000},'G-J':{E:30000,B:57500,F:85000}}},
   UA: {name:'유나이티드 마일리지플러스', note:'스타얼라이언스 파트너 포함',
     r:{'A-G':{E:35000,B:70000,F:110000},'B-G':{E:35000,B:70000,F:110000},
        'C-G':{E:35000,B:70000,F:110000},'F-G':{E:30000,B:60000,F:110000},
        'G-G':{E:12500,B:25000,F:50000},'G-H':{E:22500,B:45000,F:90000},
        'A-F':{E:42500,B:70000,F:110000},'A-B':{E:17500,B:40000,F:75000},
-       'B-F':{E:42500,B:70000,F:110000},'G-I':{E:40000,B:80000,F:120000}}},
-  AS: {name:'알래스카 마일리지플랜', note:'파트너: 캐세이, JAL, BA 등',
-    r:{'A-G':{E:35000,B:60000,F:80000},'B-G':{E:30000,B:55000,F:70000},
-       'C-G':{E:35000,B:60000,F:80000},'F-G':{E:27500,B:57500,F:70000},
+       'B-F':{E:42500,B:70000,F:110000},'G-I':{E:40000,B:80000,F:120000},
+       'G-J':{E:30000,B:60000,F:100000}}},
+  AS: {name:'알래스카 아트모스 리워드', note:'원월드 파트너 (거리 기반, 최소 요구량)',
+    r:{'A-G':{E:35000,B:60000,F:80000},'B-G':{E:30000,B:60000,F:80000},
+       'C-G':{E:35000,B:60000,F:80000},'F-G':{E:30000,B:60000,F:80000},
        'G-G':{E:12500,B:25000},'A-F':{E:42500,B:65000,F:85000},
        'B-F':{E:35000,B:60000,F:80000},'E-G':{E:40000,B:65000,F:90000}}},
   DL: {name:'델타 스카이마일스', note:'동적 가격제 (참고용 범위)', dynamic:true,
     r:{'A-G':{E:'60k~120k',B:'130k~220k'},'B-G':{E:'50k~100k',B:'110k~200k'},
        'F-G':{E:'40k~80k',B:'80k~160k'},'G-G':{E:'10k~50k',B:'25k~100k'},
        'A-F':{E:'50k~100k',B:'100k~200k'}}},
-  NH: {name:'ANA 마일리지클럽', note:'스타얼라이언스 파트너 포함',
-    r:{'A-B':{E:12000,B:21000},'B-G':{E:55000,B:88000,F:120000},
-       'B-F':{E:55000,B:88000,F:120000},'A-G':{E:55000,B:88000,F:120000},
-       'A-F':{E:55000,B:88000,F:120000},'B-D':{E:17000,B:30000,F:55000},
-       'A-D':{E:17000,B:30000},'B-I':{E:40000,B:65000,F:95000}}},
+  NH: {name:'ANA 마일리지클럽', note:'스타얼라이언스 파트너 (2024.4 개정)',
+    r:{'A-B':{E:15000,B:30000},'B-G':{E:55000,B:110000,F:165000},
+       'B-F':{E:55000,B:110000,F:165000},'A-G':{E:55000,B:110000,F:165000},
+       'A-F':{E:55000,B:110000,F:165000},'B-D':{E:20000,B:38000,F:55000},
+       'A-D':{E:20000,B:38000},'B-I':{E:45000,B:80000,F:130000}}},
   JL: {name:'JAL 마일리지뱅크', note:'원월드 파트너 포함',
     r:{'A-B':{E:12000,B:21000},'B-G':{E:60000,B:100000,F:150000},
        'B-F':{E:60000,B:100000,F:150000},'A-G':{E:60000,B:100000,F:150000},
@@ -350,7 +536,8 @@ const CHARTS = {
   CX: {name:'캐세이 아시아마일즈', note:'원월드 파트너 포함',
     r:{'A-C':{E:17500,B:35000},'C-G':{E:35000,B:75000,F:110000},
        'C-F':{E:35000,B:75000,F:110000},'A-G':{E:35000,B:75000,F:110000},
-       'A-F':{E:35000,B:75000,F:110000},'D-G':{E:35000,B:75000,F:110000}}},
+       'A-F':{E:35000,B:75000,F:110000},'D-G':{E:35000,B:75000,F:110000},
+       'D-F':{E:30000,B:60000,F:90000}}},
   EK: {name:'에미레이트 스카이워즈', note:'에미레이트 단독',
     r:{'A-E':{E:25000,B:50000,F:75000},'E-F':{E:27500,B:55000,F:82500},
        'E-G':{E:42500,B:77500,F:115000},'A-F':{E:52500,B:105000,F:142500},
@@ -363,26 +550,37 @@ const CHARTS = {
     r:{'A-B':{E:15000,B:30000,F:45000},'A-C':{E:20000,B:40000,F:60000},
        'A-D':{E:30000,B:60000,F:90000},'A-F':{E:50000,B:100000,F:150000},
        'A-G':{E:50000,B:100000,F:150000},'F-G':{E:30000,B:60000,F:90000},
-       'B-G':{E:45000,B:90000,F:135000},'G-G':{E:9000,B:18000}}},
+       'B-G':{E:45000,B:90000,F:135000},'G-G':{E:9000,B:18000},
+       'D-F':{E:40000,B:80000,F:120000}}},
+  // FIX: IB 차트 추가 — Avios 기반 (BA와 유사한 구조)
+  IB: {name:'이베리아 Avios', note:'원월드 파트너 (Avios 기반)',
+    r:{'A-B':{E:15000,B:30000,F:45000},'A-C':{E:20000,B:40000,F:60000},
+       'A-D':{E:30000,B:60000,F:90000},'A-F':{E:42500,B:85000,F:127500},
+       'A-G':{E:42500,B:85000,F:127500},'F-G':{E:25500,B:51000,F:76500},
+       'B-G':{E:42500,B:85000,F:127500},'G-G':{E:8500,B:17000},
+       'G-J':{E:25500,B:51000,F:76500}}},
   AF: {name:'에어프랑스-KLM 플라잉블루', note:'스카이팀 파트너 (동적 가격제)', dynamic:true,
     r:{'A-F':{E:'25k~50k',B:'60k~130k',F:'100k~200k'},
        'F-G':{E:'25k~50k',B:'60k~130k',F:'100k~200k'},
-       'A-G':{E:'35k~70k',B:'80k~160k'}}},
+       'A-G':{E:'35k~70k',B:'80k~160k'},
+       'D-F':{E:'20k~40k',B:'50k~100k'}}},
   LH: {name:'루프트한자 마일즈앤모어', note:'스타얼라이언스 파트너 포함',
     r:{'A-F':{E:43750,B:87500,F:130000},'A-G':{E:55000,B:110000,F:150000},
        'F-G':{E:30000,B:60000,F:90000},'B-F':{E:40000,B:80000,F:120000},
        'B-G':{E:55000,B:110000},'A-B':{E:15000,B:30000}}},
-  AC: {name:'에어캐나다 에어로플랜', note:'스타얼라이언스 파트너 포함',
+  AC: {name:'에어캐나다 에어로플랜', note:'스타얼라이언스 (AC/UA 동적, 파트너 고정)',
     r:{'A-G':{E:30000,B:55000,F:75000},'A-F':{E:30000,B:55000,F:75000},
        'A-B':{E:12500,B:25000},'A-D':{E:17500,B:35000},
        'B-G':{E:30000,B:55000,F:75000},'F-G':{E:30000,B:55000,F:75000},
        'G-G':{E:12500,B:25000},'G-H':{E:12500,B:25000},
-       'A-I':{E:37500,B:65000,F:85000},'G-I':{E:37500,B:65000}}},
-  AV: {name:'아비안카 라이프마일즈', note:'스타얼라이언스 파트너 포함',
-    r:{'A-G':{E:30000,B:63000,F:80000},'A-F':{E:30000,B:63000,F:80000},
-       'A-B':{E:12500,B:25000},'B-G':{E:30000,B:63000},
-       'F-G':{E:25000,B:50000},'G-G':{E:7500,B:17000},
-       'G-H':{E:7500,B:17000},'A-D':{E:17500,B:36000}}},
+       'A-I':{E:37500,B:65000,F:85000},'G-I':{E:37500,B:65000},
+       'G-J':{E:25000,B:50000,F:70000}}},
+  AV: {name:'아비안카 라이프마일즈', note:'스타얼라이언스 (2025.2 개정)',
+    r:{'A-G':{E:55000,B:90000,F:120000},'A-F':{E:40000,B:80000,F:120000},
+       'A-B':{E:15000,B:30000},'B-G':{E:55000,B:90000},
+       'F-G':{E:35000,B:63000},'G-G':{E:10000,B:20000},
+       'G-H':{E:10000,B:20000},'A-D':{E:20000,B:40000},
+       'G-J':{E:20000,B:40000}}},
   VS: {name:'버진 애틀랜틱 플라잉클럽', note:'델타 파트너, ANA 파트너 포함',
     r:{'A-G':{E:50000,B:95000,F:110000},'B-G':{E:45000,B:85000,F:100000},
        'F-G':{E:30000,B:60000,F:75000},'G-G':{E:12500,B:25000},
@@ -395,124 +593,148 @@ const CHARTS = {
   TK: {name:'터키항공 마일즈앤스마일즈', note:'스타얼라이언스 파트너 포함',
     r:{'A-F':{E:45000,B:75000,F:90000},'A-G':{E:55000,B:95000,F:110000},
        'B-G':{E:55000,B:95000,F:110000},'F-G':{E:25000,B:45000,F:60000},
-       'A-B':{E:10000,B:20000},'A-E':{E:25000,B:45000}}},
+       'A-B':{E:10000,B:20000},'A-E':{E:25000,B:45000},
+       'D-F':{E:35000,B:60000}}},
   EY: {name:'에티하드 게스트', note:'에티하드 파트너 포함',
     r:{'A-E':{E:25000,B:50000,F:75000},'E-F':{E:25000,B:50000,F:75000},
        'E-G':{E:45000,B:80000,F:120000},'A-G':{E:55000,B:90000,F:130000},
        'F-G':{E:30000,B:60000,F:90000}}},
 };
 
-// 카드 포인트 이전 파트너 (출처: frequentmiler.com/transfer-partner-master-list)
+// ─── 카드 포인트 이전 파트너 ──────────────────────────
 const CARD_TRANSFERS = {
   AMEX: {name:'아멕스 멤버십 리워드', color:'#006fcf',
     to:[
-      {code:'NH',  label:'ANA 마일리지클럽 1:1'},
-      {code:'SQ',  label:'싱가포르항공 크리스플라이어 1:1'},
-      {code:'BA',  label:'British Airways Avios 1:1'},
-      {code:'AF',  label:'에어프랑스-KLM 플라잉블루 1:1'},
-      {code:'DL',  label:'델타 스카이마일스 1:1'},
-      {code:'AC',  label:'에어캐나다 에어로플랜 1:1'},
-      {code:'CX',  label:'캐세이 아시아마일즈 1:1'},
-      {code:'EK',  label:'에미레이트 스카이워즈 1000→800'},
-      {code:'EY',  label:'에티하드 게스트 1:1'},
-      {code:'QF',  label:'콴타스 프리퀀트플라이어 1:1'},
-      {code:'QR',  label:'카타르 프리빌리지클럽 1:1'},
-      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽 1:1'},
-      {code:'AV',  label:'아비안카 라이프마일즈 1:1'},
-      {code:'IB',  label:'이베리아 Avios 1:1 (Iberia)'},
+      {code:'NH',  label:'ANA 마일리지클럽', ratio:1},
+      {code:'SQ',  label:'싱가포르항공 크리스플라이어', ratio:1},
+      {code:'BA',  label:'British Airways Avios', ratio:1},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'DL',  label:'델타 스카이마일스', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:1},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.8},
+      {code:'EY',  label:'에티하드 게스트', ratio:1},
+      {code:'QF',  label:'콴타스 프리퀀트플라이어', ratio:1},
+      {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
+      {code:'IB',  label:'이베리아 Avios', ratio:1},
     ]},
   Chase: {name:'체이스 얼티밋 리워드', color:'#117aca',
     to:[
-      {code:'UA',  label:'유나이티드 마일리지플러스 1:1'},
-      {code:'SQ',  label:'싱가포르항공 크리스플라이어 1:1'},
-      {code:'BA',  label:'British Airways Avios 1:1'},
-      {code:'AF',  label:'에어프랑스-KLM 플라잉블루 1:1'},
-      {code:'AC',  label:'에어캐나다 에어로플랜 1:1'},
-      {code:'QR',  label:'카타르 프리빌리지클럽 1:1 (BA 경유)'},
-      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽 1:1'},
-      {code:'IB',  label:'이베리아 Avios 1:1'},
+      {code:'UA',  label:'유나이티드 마일리지플러스', ratio:1},
+      {code:'SQ',  label:'싱가포르항공 크리스플라이어', ratio:1},
+      {code:'BA',  label:'British Airways Avios', ratio:1},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
+      {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'IB',  label:'이베리아 Avios', ratio:1},
     ]},
   Citi: {name:'Citi 땡큐 포인트', color:'#056dae',
     to:[
-      {code:'AA',  label:'아메리칸 AAdvantage 1:1'},
-      {code:'SQ',  label:'싱가포르항공 크리스플라이어 1:1'},
-      {code:'AF',  label:'에어프랑스-KLM 플라잉블루 1:1'},
-      {code:'QR',  label:'카타르 프리빌리지클럽 1:1'},
-      {code:'CX',  label:'캐세이 아시아마일즈 1:1'},
-      {code:'EK',  label:'에미레이트 스카이워즈 1000→800'},
-      {code:'EY',  label:'에티하드 게스트 1:1'},
-      {code:'QF',  label:'콴타스 프리퀀트플라이어 1:1'},
-      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽 1:1'},
-      {code:'TK',  label:'터키항공 마일즈앤스마일즈 1:1'},
-      {code:'AV',  label:'아비안카 라이프마일즈 1:1'},
+      {code:'AA',  label:'아메리칸 AAdvantage', ratio:1},
+      {code:'SQ',  label:'싱가포르항공 크리스플라이어', ratio:1},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:1},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.8},
+      {code:'EY',  label:'에티하드 게스트', ratio:1},
+      {code:'QF',  label:'콴타스 프리퀀트플라이어', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
     ]},
   CapOne: {name:'캐피털원 마일즈', color:'#004879',
     to:[
-      {code:'AF',  label:'에어프랑스-KLM 플라잉블루 1:1'},
-      {code:'SQ',  label:'싱가포르항공 크리스플라이어 1:1'},
-      {code:'BA',  label:'British Airways Avios 1:1'},
-      {code:'AC',  label:'에어캐나다 에어로플랜 1:1'},
-      {code:'QR',  label:'카타르 프리빌리지클럽 1:1'},
-      {code:'EK',  label:'에미레이트 스카이워즈 1000→750'},
-      {code:'EY',  label:'에티하드 게스트 1:1'},
-      {code:'QF',  label:'콴타스 프리퀀트플라이어 1:1'},
-      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽 1:1'},
-      {code:'TK',  label:'터키항공 마일즈앤스마일즈 1:1'},
-      {code:'AV',  label:'아비안카 라이프마일즈 1:1'},
-      {code:'JL',  label:'JAL 마일리지뱅크 2000→1500'},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'SQ',  label:'싱가포르항공 크리스플라이어', ratio:1},
+      {code:'BA',  label:'British Airways Avios', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
+      {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.75},
+      {code:'EY',  label:'에티하드 게스트', ratio:1},
+      {code:'QF',  label:'콴타스 프리퀀트플라이어', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:0.75},
     ]},
   Bilt: {name:'Bilt 리워드', color:'#1a1a1a',
     to:[
-      {code:'UA',  label:'유나이티드 마일리지플러스 1:1'},
-      {code:'AC',  label:'에어캐나다 에어로플랜 1:1'},
-      {code:'AF',  label:'에어프랑스-KLM 플라잉블루 1:1'},
-      {code:'BA',  label:'British Airways Avios 1:1'},
-      {code:'CX',  label:'캐세이 아시아마일즈 1:1'},
-      {code:'EK',  label:'에미레이트 스카이워즈 1:1'},
-      {code:'EY',  label:'에티하드 게스트 1:1'},
-      {code:'JL',  label:'JAL 마일리지뱅크 1:1'},
-      {code:'QR',  label:'카타르 프리빌리지클럽 1:1'},
-      {code:'TK',  label:'터키항공 마일즈앤스마일즈 1:1'},
-      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽 1:1'},
-      {code:'AV',  label:'아비안카 라이프마일즈 1:1'},
+      {code:'UA',  label:'유나이티드 마일리지플러스', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'BA',  label:'British Airways Avios', ratio:1},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:1},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:1},
+      {code:'EY',  label:'에티하드 게스트', ratio:1},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:1},
+      {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
+      {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
     ]},
 };
 
-// ─── 항공사별 어워드 예약 링크 ─────────────────────────
-const BOOKING_LINKS = {
-  KE:     'https://www.koreanair.com',
-  OZ:     'https://flyasiana.com',
-  AA:     'https://www.aa.com',
-  UA:     'https://www.united.com',
-  AS:     'https://www.alaskaair.com',
-  DL:     'https://www.delta.com',
-  NH:     'https://www.ana.co.jp/en/jp/',
-  JL:     'https://www.jal.co.jp/en/',
-  SQ:     'https://www.singaporeair.com',
-  CX:     'https://www.cathaypacific.com',
-  EK:     'https://www.emirates.com',
-  QR:     'https://www.qatarairways.com',
-  BA:     'https://www.britishairways.com',
-  AF:     'https://www.airfrance.com',
-  LH:     'https://www.lufthansa.com',
-  AC:     'https://www.aircanada.com',
-  AV:     'https://www.avianca.com',
-  VS:     'https://www.virginatlantic.com',
-  QF:     'https://www.qantas.com',
-  TK:     'https://www.turkishairlines.com',
-  EY:     'https://www.etihad.com',
-  AMEX:   'https://global.americanexpress.com/rewards/summary',
-  Chase:  'https://ultimaterewards.com',
-  Citi:   'https://www.thankyou.com',
-  CapOne: 'https://www.capitalone.com/miles/transfers/',
-  Bilt:   'https://www.biltrewards.com',
+// ─── 유류할증료 정보 (금액 범위 추가) ──────────────────
+const FUEL_SURCHARGE = {
+  KE:{level:'mid',range:'$50~200'}, OZ:{level:'mid',range:'$50~200'},
+  AA:{level:'low',range:'$0~30'}, UA:{level:'low',range:'$0~30'},
+  AS:{level:'low',range:'$0~30'}, DL:{level:'low',range:'$0~30'},
+  NH:{level:'low',range:'$0~50'}, JL:{level:'mid',range:'$50~150'},
+  SQ:{level:'low',range:'$0~50'}, CX:{level:'mid',range:'$50~200'},
+  EK:{level:'mid',range:'$50~200'}, QR:{level:'low',range:'$0~50'},
+  BA:{level:'high',range:'$200~700'}, AF:{level:'mid',range:'$50~200'},
+  LH:{level:'high',range:'$200~600'}, AC:{level:'low',range:'$0~50'},
+  AV:{level:'low',range:'$0~50'}, VS:{level:'high',range:'$200~500'},
+  QF:{level:'high',range:'$100~400'}, TK:{level:'mid',range:'$50~150'},
+  EY:{level:'mid',range:'$50~200'}, IB:{level:'low',range:'$0~50'},
+};
+const FUEL_LABEL = {
+  low:'유류할증 낮음', mid:'유류할증 보통', high:'유류할증 높음'
 };
 
-function getBookingUrl(code) {
-  return BOOKING_LINKS[code] || null;
-}
+
+
+// ─── 유틸 ───────────────────────────────────────────
 function getZone(code) { return AIRPORT_ZONE[code] || null; }
 function getZoneKey(z1, z2) { return z1 === z2 ? z1+'-'+z1 : [z1,z2].sort().join('-'); }
+function getRatioLabel(ratio) {
+  if (ratio === 1) return '1:1';
+  if (ratio === 0.8) return '1000→800';
+  if (ratio === 0.75) return '1000→750';
+  return `${Math.round(ratio*100)}%`;
+}
+function formatNumber(n) {
+  if (!n && n !== 0) return '';
+  return Number(n).toLocaleString('ko-KR');
+}
+
+// FIX: 동적 가격제 range에서 최소/최대값 파싱
+function parseDynamicRange(str) {
+  if (typeof str !== 'string') return null;
+  const match = str.match(/(\d+)k?~(\d+)k?/);
+  if (!match) return null;
+  const min = parseInt(match[1]) * (str.includes('k') ? 1000 : 1);
+  const max = parseInt(match[2]) * (str.includes('k') ? 1000 : 1);
+  return { min, max };
+}
+
+// ─── 항공사 홈페이지 링크 ─────────────────────────────
+const AIRLINE_LINKS = {
+  KE:'https://www.koreanair.com', OZ:'https://flyasiana.com',
+  AA:'https://www.aa.com', UA:'https://www.united.com',
+  AS:'https://www.alaskaair.com', DL:'https://www.delta.com',
+  NH:'https://www.ana.co.jp/en/jp/', JL:'https://www.jal.co.jp/en/',
+  SQ:'https://www.singaporeair.com', CX:'https://www.cathaypacific.com',
+  EK:'https://www.emirates.com', QR:'https://www.qatarairways.com',
+  BA:'https://www.britishairways.com', AF:'https://www.airfrance.com',
+  LH:'https://www.lufthansa.com', AC:'https://www.aircanada.com',
+  AV:'https://www.avianca.com', VS:'https://www.virginatlantic.com',
+  QF:'https://www.qantas.com', TK:'https://www.turkishairlines.com',
+  EY:'https://www.etihad.com', IB:'https://www.iberia.com',
+};
 
 const POPULAR_AIRPORTS = [
   'ICN','GMP','PUS','CJU',
@@ -531,33 +753,47 @@ function filterAirports(term, excludeCodes) {
   const excl = excludeCodes || [];
   if (!term) {
     return POPULAR_AIRPORTS
-      .map(code => AIRPORTS.find(a => a.code === code))
+      .map(code => AIRPORT_MAP[code])
       .filter(a => a && !excl.includes(a.code));
   }
   const t = term.toLowerCase();
   return AIRPORTS
-    .filter(a =>
-      !excl.includes(a.code) && (
-        a.code.toLowerCase().includes(t) ||
-        a.name.toLowerCase().includes(t) ||
-        a.city.toLowerCase().includes(t)
-      )
-    )
+    .filter(a => !excl.includes(a.code) && (
+      a.code.toLowerCase().includes(t) ||
+      a.name.toLowerCase().includes(t) ||
+      a.city.toLowerCase().includes(t)
+    ))
     .slice(0, 40);
 }
 
 const CABIN_KO = {E:'이코노미', B:'비즈니스', F:'퍼스트'};
 
-// ─── AirportInput 컴포넌트 (키보드 화살표 네비게이션 지원) ──
-function AirportInput({label, placeholder, search, setSearch, onSelect, excludeCodes}) {
+// ─── Toast 컴포넌트 ─────────────────────────────────
+function Toast({message, type, onDone}) {
+  const [hiding, setHiding] = useState(false);
+  useEffect(() => {
+    const t1 = setTimeout(() => setHiding(true), 2200);
+    const t2 = setTimeout(onDone, 2500);
+    return () => { clearTimeout(t1); clearTimeout(t2); };
+  }, []);
+  return (
+    <div className="toast-container">
+      <div className={`toast toast-${type || 'info'}${hiding ? ' hiding' : ''}`}>
+        {message}
+      </div>
+    </div>
+  );
+}
+
+// ─── AirportInput 컴포넌트 ──────────────────────────
+function AirportInput({label, placeholder, value, search, setSearch, onSelect, onClear, excludeCodes}) {
   const [show, setShow] = useState(false);
   const [hiIdx, setHiIdx] = useState(-1);
-  const listRef = React.useRef(null);
-  const results = filterAirports(search, excludeCodes || []);
+  const listRef = useRef(null);
+  const results = filterAirports(value ? '' : search, excludeCodes || []);
 
   function pick(ap) {
     onSelect(ap);
-    setSearch(ap.code + ' · ' + ap.city);
     setShow(false);
     setHiIdx(-1);
   }
@@ -571,60 +807,194 @@ function AirportInput({label, placeholder, search, setSearch, onSelect, excludeC
     else if (e.key === 'Escape') { setShow(false); setHiIdx(-1); }
   }
 
-  React.useEffect(() => {
+  useEffect(() => {
     if (listRef.current && hiIdx >= 0) {
-      const el = listRef.current.children[hiIdx + (search ? 0 : 1)];
+      const offset = search ? 0 : 1;
+      const el = listRef.current.children[hiIdx + offset];
       if (el) el.scrollIntoView({block:'nearest'});
     }
   }, [hiIdx]);
 
+  const selectedAirport = value ? AIRPORT_MAP[value] : null;
+
   return (
-    <div style={{marginBottom:24, position:'relative'}}>
-      <label style={{display:'block', marginBottom:8, fontSize:'0.9rem', fontWeight:'500', color:'#555'}}>
-        {label}
-      </label>
-      <input type="text" value={search} autoComplete="off"
-        onChange={e => { setSearch(e.target.value); setShow(true); setHiIdx(0); }}
-        onFocus={() => { setShow(true); setHiIdx(-1); }}
-        onBlur={() => setTimeout(() => { setShow(false); setHiIdx(-1); }, 180)}
-        onKeyDown={handleKey}
-        placeholder={placeholder}
-        style={{width:'100%', padding:'13px 16px', fontSize:'1rem', border:'1px solid #ddd',
-          borderRadius:8, outline:'none', color:'#333', fontFamily:'inherit', boxSizing:'border-box'}}
-      />
-      {show && results.length > 0 && (
-        <div ref={listRef}
-          style={{position:'absolute', top:'100%', left:0, right:0, marginTop:4,
-            background:'#fff', border:'1px solid #ddd', borderRadius:8, maxHeight:290,
-            overflowY:'auto', zIndex:100, boxShadow:'0 4px 16px rgba(0,0,0,0.13)'}}>
-          {!search && (
-            <div style={{padding:'7px 16px 5px', fontSize:'0.74rem', color:'#bbb', fontWeight:700,
-              letterSpacing:'0.06em', borderBottom:'1px solid #f0f0f0', background:'#fafafa'}}>
-              🌐 인기 공항
+    <div style={{marginBottom:20, position:'relative'}} role="combobox" aria-expanded={show} aria-haspopup="listbox">
+      <label className="label">{label}</label>
+      {selectedAirport ? (
+        <div className="airport-selected">
+          <span className="airport-code">{selectedAirport.code}</span>
+          <span style={{color:'var(--c-gray-700)', flex:1}}>{selectedAirport.city}</span>
+          <span style={{fontSize:'0.8rem', color:'var(--c-gray-400)'}}>{selectedAirport.name}</span>
+          <span onClick={() => { onClear(); setSearch(''); }} className="airport-clear"
+            aria-label="선택 해제">×</span>
+        </div>
+      ) : (
+        <>
+          <input type="text" value={search} autoComplete="off"
+            className="input"
+            onChange={e => { setSearch(e.target.value); setShow(true); setHiIdx(0); }}
+            onFocus={() => { setShow(true); setHiIdx(-1); }}
+            onBlur={() => setTimeout(() => { setShow(false); setHiIdx(-1); }, 180)}
+            onKeyDown={handleKey}
+            placeholder={placeholder}
+            role="searchbox"
+            aria-label={label} />
+          {show && results.length > 0 && (
+            <div ref={listRef} className="dropdown" role="listbox" aria-label="공항 목록">
+              {!search && (
+                <div className="dropdown-header">🌐 인기 공항</div>
+              )}
+              {results.map((ap, i) => (
+                <div key={ap.code}
+                  onMouseDown={() => pick(ap)}
+                  onMouseEnter={() => setHiIdx(i)}
+                  className={'dropdown-item' + (i === hiIdx ? ' highlighted' : '')}
+                  role="option"
+                  aria-selected={i === hiIdx}>
+                  <span style={{fontWeight:700, color:'var(--c-primary)', fontFamily:'var(--font-mono)',
+                    fontSize:'0.95rem', minWidth:38}}>{ap.code}</span>
+                  <span style={{color:'var(--c-gray-700)', flex:1}}>{ap.city}</span>
+                  <span style={{fontSize:'0.78rem', color:'var(--c-gray-400)'}}>{ap.name}</span>
+                </div>
+              ))}
             </div>
           )}
-          {results.map((ap, i) => (
-            <div key={ap.code}
-              onMouseDown={() => pick(ap)}
-              onMouseEnter={() => setHiIdx(i)}
-              style={{
-                padding:'10px 16px', cursor:'pointer', display:'flex', alignItems:'center', gap:10,
-                background: i === hiIdx ? '#e8f0fe' : '#fff',
-                borderBottom: i < results.length-1 ? '1px solid #f5f5f5' : 'none',
-              }}
-            >
-              <span style={{fontWeight:700, color:'#1a73e8', fontFamily:'monospace', fontSize:'0.95rem', minWidth:38}}>{ap.code}</span>
-              <span style={{color:'#333', flex:1}}>{ap.city}</span>
-              <span style={{fontSize:'0.79rem', color:'#bbb'}}>{ap.name}</span>
-            </div>
-          ))}
-        </div>
+        </>
       )}
     </div>
   );
 }
 
-// ─── 메인 컴포넌트 ────────────────────────────────────
+// ─── ResultCard 컴포넌트 ────────────────────────────
+function ResultCard({r, idx, result, onBook}) {
+  const hasAny = r.cabins.some(c => c.canAfford === true);
+  const fuelInfo = FUEL_SURCHARGE[r.targetCode];
+  const fuelClass = fuelInfo ? (fuelInfo.level === 'low' ? 'fuel-low' : fuelInfo.level === 'high' ? 'fuel-high' : 'fuel-mid') : '';
+
+  return (
+    <div className={'result-card fade-up fade-up-'+(idx%5) + (hasAny ? ' affordable' : '')}>
+      {/* 카드 헤더 */}
+      <div className="result-header">
+        <div style={{display:'flex', alignItems:'center', gap:12}}>
+          <div className="result-icon" style={{background:r.programColor}}>
+            <span className="result-icon-text">
+              {PROGRAM_MAP[r.programName]?.code?.slice(0,5) || r.targetCode || '?'}
+            </span>
+          </div>
+          <div>
+            <div style={{fontWeight:700, fontSize:'0.95rem', color:'var(--c-gray-800)'}}>
+              {r.isCard ? r.targetName : r.programName}
+              {fuelInfo && (
+                <span className={'fuel-badge ' + fuelClass}
+                  title={fuelInfo.range}>
+                  {FUEL_LABEL[fuelInfo.level]} ({fuelInfo.range})
+                </span>
+              )}
+            </div>
+            {r.isCard && (
+              <div style={{fontSize:'0.8rem', color:'var(--c-primary)', marginTop:2}}>
+                ← {r.programName}에서 이전
+                <span style={{color:'var(--c-gray-400)', marginLeft:6}}>
+                  ({getRatioLabel(r.transferRatio)})
+                </span>
+              </div>
+            )}
+            {!r.isCard && r.note && (
+              <div style={{fontSize:'0.78rem', color:'var(--c-gray-400)', marginTop:2}}>{r.note}</div>
+            )}
+          </div>
+        </div>
+        <div style={{textAlign:'right'}}>
+          <div style={{fontSize:'0.75rem', color:'var(--c-gray-400)'}}>
+            {r.isCard ? '전환 후 마일' : '보유 마일'}
+          </div>
+          <div style={{fontWeight:700, fontFamily:'var(--font-mono)', fontSize:'1rem',
+            color: hasAny ? 'var(--c-success)' : 'var(--c-gray-700)'}}>
+            {formatNumber(r.convertedPoints)}
+            <span style={{fontSize:'0.78rem', fontWeight:400, marginLeft:2}}>mi</span>
+          </div>
+          {r.isCard && r.transferRatio !== 1 && (
+            <div style={{fontSize:'0.72rem', color:'var(--c-gray-400)'}}>
+              (원래 {formatNumber(r.userPoints)} P)
+            </div>
+          )}
+        </div>
+      </div>
+
+      {/* 캐빈별 표 */}
+      <div className={`cabin-grid cabin-grid-${r.cabins.length <= 1 ? '1' : r.cabins.length <= 2 ? '2' : ''}`}
+        style={{gridTemplateColumns:`repeat(${r.cabins.length}, 1fr)`}}>
+        {r.cabins.map((c, ci) => {
+          // FIX: 동적 가격에서 가능성 판별
+          let cellClass, txt, badgeBg, badge;
+          if (c.canAfford === true) {
+            cellClass = 'can-afford'; txt = 'var(--c-success)'; badgeBg = 'var(--c-success)'; badge = '✓ 발권 가능';
+          } else if (c.canAfford === false) {
+            cellClass = 'cannot-afford'; txt = 'var(--c-gray-400)'; badgeBg = 'var(--c-gray-300)'; badge = '✗ 마일 부족';
+          } else if (c.dynamicPossible === true) {
+            cellClass = 'maybe-possible'; txt = 'var(--c-success)'; badgeBg = '#22C55E'; badge = '〜 가능성 있음';
+          } else if (c.dynamicPossible === false) {
+            cellClass = 'cannot-afford'; txt = 'var(--c-gray-400)'; badgeBg = 'var(--c-gray-300)'; badge = '✗ 최소 미달';
+          } else {
+            cellClass = 'maybe'; txt = 'var(--c-warning)'; badgeBg = 'var(--c-warning)'; badge = '〜 범위 확인';
+          }
+          return (
+            <div key={c.cabin} className={'cabin-cell ' + cellClass}>
+              <div style={{fontSize:'0.76rem', color:'var(--c-gray-500)', fontWeight:600, marginBottom:5}}>
+                {CABIN_KO[c.cabin]}
+              </div>
+              <div style={{fontWeight:700, fontSize:'1.05rem', color:txt,
+                fontFamily:'var(--font-mono)', marginBottom:8}}>
+                {c.display}
+                <span style={{fontWeight:400, fontSize:'0.72rem', marginLeft:2}}>마일</span>
+              </div>
+              <div className="badge" style={{background:badgeBg}}>{badge}</div>
+              {c.canAfford === false && c.rawNeeded && (
+                <div style={{marginTop:6, fontSize:'0.72rem', color:'var(--c-danger)'}}>
+                  {formatNumber(c.rawNeeded - r.convertedPoints)} 부족
+                </div>
+              )}
+              {/* 발권 버튼 */}
+              {(c.canAfford === true || c.dynamicPossible === true) && onBook && (
+                <div style={{marginTop:8}}>
+                  <div style={{fontSize:'0.7rem', color:'var(--c-gray-400)', marginBottom:4}}>
+                    잔여: <strong style={{color:'var(--c-gray-600)'}}>
+                      {formatNumber(r.convertedPoints - (c.rawNeeded || c.dynamicMin || 0))}
+                    </strong> mi
+                  </div>
+                  <button onClick={(e) => { e.stopPropagation(); onBook(r, c); }}
+                    className="btn-book">
+                    🎫 이 표 발권
+                  </button>
+                </div>
+              )}
+            </div>
+          );
+        })}
+      </div>
+
+      {r.dynamic && (
+        <div style={{marginTop:10, fontSize:'0.78rem', color:'var(--c-warning)', fontWeight:500}}>
+          ⚠️ 동적 가격제 — 실제 마일은 시기·수요에 따라 변동됩니다
+        </div>
+      )}
+
+      {/* 항공사 홈페이지 */}
+      {r.targetCode && AIRLINE_LINKS[r.targetCode] && (
+        <div style={{marginTop:14, paddingTop:12, borderTop:'1px solid var(--c-gray-100)'}}>
+          <a href={AIRLINE_LINKS[r.targetCode]} target="_blank" rel="noopener noreferrer"
+            className="btn btn-outline btn-sm" style={{gap:4}}>
+            🔗 {r.isCard ? r.targetName : r.programName} 홈페이지 ↗
+          </a>
+        </div>
+      )}
+
+
+    </div>
+  );
+}
+
+// ─── 메인 앱 ────────────────────────────────────────
 function App() {
   const [step, setStep] = useState(1);
   const [dep, setDep] = useState('');
@@ -634,75 +1004,114 @@ function App() {
   const [tripType, setTripType] = useState('oneway');
   const [layovers, setLayovers] = useState([]);
   const [layoverSearch, setLayoverSearch] = useState('');
-  const [showLayover, setShowLayover] = useState([]);
+  const [showLayover, setShowLayover] = useState(false);
   const [passengers, setPassengers] = useState(1);
   const [pointsList, setPointsList] = useState([]);
   const [selProgram, setSelProgram] = useState('');
   const [selPoints, setSelPoints] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
+  const [sortMode, setSortMode] = useState('class');
+  const [toast, setToast] = useState(null);
+  const [bookedTickets, setBookedTickets] = useState([]);
 
-  // Step 1 유효성
   const step1Valid = dep && arr;
+  const maxStep = step === 'booked' ? 3 : result ? 3 : pointsList.length > 0 ? 2 : step1Valid ? 2 : 1;
 
-  // 포인트 추가
+  // FIX: Zone 미지원 공항 경고
+  const depZone = dep ? getZone(dep) : null;
+  const arrZone = arr ? getZone(arr) : null;
+  const hasZoneWarning = step1Valid && (!depZone || !arrZone);
+
+  // 경유지 관련 — 마일 계산에 실제 영향 설명
+  const zoneKey = depZone && arrZone ? getZoneKey(depZone, arrZone) : null;
+
+  function showToast(message, type) {
+    setToast({message, type, id: Date.now()});
+  }
+
+  function goToStep(n) {
+    if (n === 1) { setResult(null); setStep(1); }
+    else if (n === 2 && step1Valid) { setResult(null); setStep(2); }
+    else if (n === 3 && (result || step === 'booked')) setStep(result ? 3 : 'booked');
+  }
+
   function addPoints() {
-    const pts = parseInt(selPoints);
+    const pts = parseInt(selPoints.replace(/,/g, ''));
     if (!selProgram || !pts || pts <= 0) return;
     const existing = pointsList.find(p => p.program === selProgram);
     if (existing) {
       setPointsList(pointsList.map(p => p.program === selProgram ? {...p, points:pts} : p));
+      showToast(`${selProgram} 포인트가 업데이트되었습니다`, 'warn');
     } else {
       setPointsList([...pointsList, {program:selProgram, points:pts}]);
+      showToast(`${selProgram} 추가 완료`, 'success');
     }
     setSelProgram(''); setSelPoints('');
   }
 
-  // 분석
   function analyze() {
     setLoading(true);
     setTimeout(() => {
-      const depZ = getZone(dep);
-      const arrZ = getZone(arr);
-      const zKey = depZ && arrZ ? getZoneKey(depZ, arrZ) : null;
+      analyzeInternal();
+    }, 600);
+  }
 
-      // 왕복 x2, layover 경유지마다 +30%
-      const multiplier = tripType === 'roundtrip' ? 2
-        : tripType === 'layover' ? (1 + layovers.length * 0.3)
-        : 1;
+  function analyzeInternal() {
+    const depZ = getZone(dep);
+    const arrZ = getZone(arr);
+    const zKey = depZ && arrZ ? getZoneKey(depZ, arrZ) : null;
+    const multiplier = tripType === 'roundtrip' ? 2 : 1;
 
-      const rows = [];
+    const rows = [];
 
-      function calcCabins(chartEntry, userPoints) {
-        if (!chartEntry || !chartEntry.r || !zKey) return [];
-        const route = chartEntry.r[zKey];
-        if (!route) return [];
-        return ['F','B','E'].map(c => {
-          const v = route[c];
-          if (!v) return null;
-          const isDyn = typeof v === 'string';
-          const needed = isDyn ? null : Math.round(v * passengers * multiplier);
+    function calcCabins(chartEntry, availablePoints) {
+      if (!chartEntry || !chartEntry.r || !zKey) return [];
+      const route = chartEntry.r[zKey];
+      if (!route) return [];
+      return ['F','B','E'].map(c => {
+        const v = route[c];
+        if (!v) return null;
+        const isDyn = typeof v === 'string';
+          if (isDyn) {
+            // FIX: 동적 가격 범위 파싱 & 가능성 판별
+            const range = parseDynamicRange(v);
+            const minNeeded = range ? Math.round(range.min * passengers * multiplier) : null;
+            const maxNeeded = range ? Math.round(range.max * passengers * multiplier) : null;
+            return {
+              cabin: c,
+              display: v,
+              rawNeeded: null,
+              canAfford: null,
+              dynamic: true,
+              dynamicPossible: range ? (availablePoints >= minNeeded ? true : false) : null,
+              dynamicMin: minNeeded,
+              dynamicMax: maxNeeded,
+            };
+          }
+          const needed = Math.round(v * passengers * multiplier);
           return {
             cabin: c,
-            display: isDyn ? v : needed.toLocaleString(),
-            canAfford: isDyn ? null : userPoints >= needed,
-            dynamic: isDyn,
+            display: needed.toLocaleString(),
+            rawNeeded: needed,
+            canAfford: availablePoints >= needed,
+            dynamic: false,
           };
         }).filter(Boolean);
       }
 
       for (const item of pointsList) {
-        const prog = PROGRAMS.find(p => p.name === item.program);
+        const prog = PROGRAM_MAP[item.program];
         if (!prog) continue;
         const code = prog.code;
 
         if (CARD_TRANSFERS[code]) {
-          // 카드 포인트
           const card = CARD_TRANSFERS[code];
           for (const tr of card.to) {
             const chart = CHARTS[tr.code];
             if (!chart) continue;
-            const cabins = calcCabins(chart, item.points);
+            const convertedPoints = Math.floor(item.points * tr.ratio);
+            const cabins = calcCabins(chart, convertedPoints);
             if (cabins.length === 0) continue;
             rows.push({
               id: code+'-'+tr.code,
@@ -710,17 +1119,18 @@ function App() {
               programColor: prog.color,
               isCard: true,
               transferLabel: tr.label,
+              transferRatio: tr.ratio,
+              targetCode: tr.code,
               targetName: chart.name,
               targetNote: chart.note,
               userPoints: item.points,
+              convertedPoints,
               cabins,
               dynamic: !!chart.dynamic,
-              bookUrl: BOOKING_LINKS[tr.code] || null,
-              btnLabel: tr.label + ' 이전 후 → ' + chart.name + ' 홈페이지',
+              fuel: FUEL_SURCHARGE[tr.code],
             });
           }
         } else if (CHARTS[code]) {
-          // 항공 마일리지
           const chart = CHARTS[code];
           const cabins = calcCabins(chart, item.points);
           if (cabins.length === 0) continue;
@@ -730,137 +1140,280 @@ function App() {
             programColor: prog.color,
             isCard: false,
             note: chart.note,
+            targetCode: code,
             userPoints: item.points,
+            convertedPoints: item.points,
             cabins,
             dynamic: !!chart.dynamic,
-            bookUrl: BOOKING_LINKS[code] || null,
-            btnLabel: chart.name + ' 홈페이지',
+            fuel: FUEL_SURCHARGE[code],
           });
         }
       }
 
-      // 정렬: F가능 > B가능 > E가능 > 불가
+      setResult({rows, depZ, arrZ, multiplier, zKey,
+        bookingParams: {dep, arr, tripType, passengers}});
+      setLoading(false);
+      setStep(3);
+  }
+
+  // 결과 정렬
+  const sortedRows = useMemo(() => {
+    if (!result) return [];
+    const rows = [...result.rows];
+    if (sortMode === 'class') {
       rows.sort((a,b) => {
         const s = r => r.cabins.some(c=>c.cabin==='F'&&c.canAfford) ? 0
           : r.cabins.some(c=>c.cabin==='B'&&c.canAfford) ? 1
           : r.cabins.some(c=>c.cabin==='E'&&c.canAfford) ? 2 : 3;
         return s(a)-s(b);
       });
-
-      setResult({rows, depZ, arrZ, multiplier});
-      setLoading(false);
-      setStep(3);
-    }, 700);
-  }
+    } else if (sortMode === 'miles_asc') {
+      rows.sort((a,b) => {
+        const getMinE = r => {
+          const ec = r.cabins.find(c => c.cabin === 'E');
+          return ec && ec.rawNeeded ? ec.rawNeeded : ec && ec.dynamicMin ? ec.dynamicMin : 999999;
+        };
+        return getMinE(a) - getMinE(b);
+      });
+    } else if (sortMode === 'fuel') {
+      const fuelRank = {low:0, mid:1, high:2};
+      rows.sort((a,b) => {
+        const fa = a.fuel ? fuelRank[a.fuel.level] ?? 1 : 1;
+        const fb = b.fuel ? fuelRank[b.fuel.level] ?? 1 : 1;
+        return fa - fb;
+      });
+    }
+    return rows;
+  }, [result, sortMode]);
 
   function reset() {
     setStep(1); setDep(''); setArr(''); setDepSearch(''); setArrSearch('');
-    setTripType('oneway'); setLayovers([]); setLayoverSearch('');
+    setTripType('oneway');
+    setLayovers([]); setLayoverSearch('');
     setPassengers(1); setPointsList([]); setSelProgram(''); setSelPoints('');
-    setResult(null);
+    setResult(null); setSortMode('class');
+    setBookedTickets([]);
   }
 
-  const inputStyle = {
-    width:'100%', padding:'13px 16px', fontSize:'1rem',
-    border:'1px solid #ddd', borderRadius:8, outline:'none', color:'#333',
-    fontFamily:'inherit', background:'#fff',
-  };
-  const labelStyle = {display:'block', marginBottom:8, fontSize:'0.9rem', fontWeight:'500', color:'#555'};
+  // 발권 처리
+  function handleBook(row, cabinObj) {
+    const milesUsed = cabinObj.rawNeeded || cabinObj.dynamicMin;
+    if (!milesUsed) return;
+
+    // 원래 포인트 차감량 계산
+    let programKey, pointsToDeduct;
+    if (row.isCard) {
+      programKey = row.programName; // 카드 프로그램 이름
+      pointsToDeduct = Math.ceil(milesUsed / row.transferRatio);
+    } else {
+      programKey = row.programName;
+      pointsToDeduct = milesUsed;
+    }
+
+    // pointsList에서 해당 프로그램 차감
+    const updated = pointsList.map(p => {
+      if (p.program === programKey) {
+        return {...p, points: Math.max(0, p.points - pointsToDeduct)};
+      }
+      return p;
+    });
+    setPointsList(updated);
+
+    // 발권 기록 추가
+    const ticket = {
+      id: Date.now(),
+      route: dep + (tripType==='layover' && layovers.length ? ' → '+layovers.join(' → ') : '') + ' → ' + arr + (tripType==='roundtrip' ? ' → '+dep : ''),
+      tripType,
+      passengers,
+      programName: row.isCard ? row.programName : row.programName,
+      airlineName: row.isCard ? row.targetName : row.programName,
+      targetCode: row.targetCode,
+      cabin: cabinObj.cabin,
+      milesUsed,
+      pointsDeducted: pointsToDeduct,
+      isCard: row.isCard,
+      transferRatio: row.transferRatio,
+    };
+    setBookedTickets(prev => [...prev, ticket]);
+    showToast(`${CABIN_KO[cabinObj.cabin]} ${formatNumber(milesUsed)}마일 발권 완료!`, 'success');
+
+    // 결과 무효화 (잔여 포인트로 재검색 유도)
+    setResult(null);
+    setStep('booked');
+  }
+
+  // 잔여 포인트로 다시 검색
+  function searchAgain() {
+    setResult(null);
+    setStep(1);
+  }
+
+  // 잔여 포인트로 바로 재분석
+  function reAnalyze() {
+    if (dep && arr && pointsList.some(p => p.points > 0)) {
+      setResult(null);
+      setLoading(true);
+      setStep(3);
+      // setTimeout to let state settle before analyze runs
+      setTimeout(() => {
+        analyzeInternal();
+      }, 100);
+    } else {
+      setStep(1);
+    }
+  }
+
+  // 발권 취소
+  function cancelTicket(ticketId) {
+    const ticket = bookedTickets.find(t => t.id === ticketId);
+    if (!ticket) return;
+    // 포인트 복원
+    const updated = pointsList.map(p => {
+      if (p.program === ticket.programName) {
+        return {...p, points: p.points + ticket.pointsDeducted};
+      }
+      return p;
+    });
+    setPointsList(updated);
+    setBookedTickets(prev => prev.filter(t => t.id !== ticketId));
+    showToast('발권이 취소되었습니다', 'warn');
+    if (result) { setResult(null); }
+  }
+
+  function handlePointsInput(val) {
+    const raw = val.replace(/[^0-9]/g, '');
+    if (raw === '') { setSelPoints(''); return; }
+    setSelPoints(Number(raw).toLocaleString('ko-KR'));
+  }
 
   return (
-    <div style={{minHeight:'100vh', background:'#fff', padding:'40px 20px'}}>
-      <div style={{maxWidth:900, margin:'0 auto'}}>
+    <div className="container">
+      {/* Toast */}
+      {toast && <Toast key={toast.id} message={toast.message} type={toast.type}
+        onDone={() => setToast(null)} />}
 
-        {/* ── 헤더 ── */}
-        <div style={{textAlign:'center', marginBottom:44, paddingBottom:28, borderBottom:'2px solid #f0f0f0'}}>
-          <h1 style={{fontSize:'2rem', fontWeight:700, margin:'0 0 10px', color:'#1a1a1a'}}>
-            마일/포인트 발권 차트 계산기
-          </h1>
-          <p style={{fontSize:'0.97rem', color:'#666', margin:'0 0 14px'}}>
-            보유하신 마일리지와 포인트로 어떤 클래스에 발권할 수 있는지 확인해보세요
-          </p>
-          <div style={{display:'inline-block', padding:'9px 18px', background:'#fff8e1',
-            border:'1px solid #ffe082', borderRadius:8, fontSize:'0.83rem', color:'#795548', lineHeight:1.7}}>
-            ⚠️ 이 계산기는 <strong>실시간 좌석 조회가 아닙니다.</strong> 포인트 이전(Transfer) 경로와 항공사 마일 차트를 기반으로 발권 아이디어를 제공합니다. 실제 가용 좌석·세금은 각 항공사에서 직접 확인하세요.
-          </div>
+      {/* ── 헤더 ── */}
+      <div style={{textAlign:'center', marginBottom:40, paddingBottom:24, borderBottom:'2px solid var(--c-gray-100)'}}>
+        <div style={{fontSize:'0.78rem', fontWeight:600, color:'var(--c-accent)', letterSpacing:'0.1em',
+          textTransform:'uppercase', marginBottom:8}}>여공법 · Award Travel Planner</div>
+        <h1 className="header-title" style={{fontSize:'2rem', fontWeight:900, color:'var(--c-gray-900)',
+          letterSpacing:'-0.03em', marginBottom:10, lineHeight:1.3}}>
+          마일/포인트 발권 플래너
+        </h1>
+        <p style={{fontSize:'0.92rem', color:'var(--c-gray-500)', marginBottom:16, lineHeight:1.6}}>
+          보유 마일리지와 카드 포인트로 어떤 클래스에 발권할 수 있는지 분석합니다
+        </p>
+        <div className="notice notice-warn" style={{display:'inline-block', maxWidth:600, textAlign:'left'}}>
+          ⚠️ <strong>실시간 좌석 조회가 아닙니다.</strong> 포인트 이전 경로와 항공사 마일 차트 기반으로 발권 아이디어를 제공합니다. 실제 가용 좌석·유류할증료·세금은 각 항공사에서 확인하세요.
         </div>
+      </div>
 
-        {/* ── 스텝 표시 ── */}
-        <div style={{display:'flex', justifyContent:'center', gap:28, marginBottom:36}}>
-          {[{n:1,label:'항공편 선택'},{n:2,label:'포인트 입력'},{n:3,label:'발권 분석'}].map(s => (
-            <div key={s.n} style={{display:'flex', alignItems:'center', gap:10, opacity: step>=s.n?1:0.35}}>
-              <div style={{width:34, height:34, borderRadius:'50%', display:'flex', alignItems:'center',
-                justifyContent:'center', fontWeight:600, fontSize:'0.95rem', color:'#fff',
-                background: step>=s.n ? '#1a73e8' : '#ccc'}}>
-                {s.n}
+      {/* ── 스텝 인디케이터 ── */}
+      <nav className="stepper" aria-label="진행 단계">
+        {[{n:1,label:'항공편 선택'},{n:2,label:'포인트 입력'},{n:3,label:'발권 분석'}].map((s, idx) => {
+          const stepNum = step === 'booked' ? 4 : step;
+          const isDone = stepNum > s.n;
+          const isActive = stepNum === s.n || (step === 'booked' && s.n === 3);
+          const canGo = s.n <= maxStep;
+          return (
+            <React.Fragment key={s.n}>
+              {idx > 0 && <div className={'step-connector' + (step > s.n ? ' done' : '')} />}
+              <div className={'step-item' + (!canGo ? ' disabled' : '')}
+                onClick={() => canGo && goToStep(s.n)}
+                role="button" tabIndex={canGo ? 0 : -1}
+                aria-current={isActive ? 'step' : undefined}>
+                <div className={'step-num ' + (isDone ? 'done' : isActive ? 'active' : 'pending')}>
+                  {isDone ? '✓' : s.n}
+                </div>
+                <span className="step-label">{s.label}</span>
               </div>
-              <span style={{fontSize:'0.88rem', color:'#555'}}>{s.label}</span>
-            </div>
-          ))}
-        </div>
+            </React.Fragment>
+          );
+        })}
+      </nav>
 
-        {/* ════════ STEP 1 ════════ */}
-        {step === 1 && (
-          <div style={{background:'#fff', border:'1px solid #e0e0e0', borderRadius:12,
-            padding:36, maxWidth:680, margin:'0 auto', boxShadow:'0 2px 8px rgba(0,0,0,0.05)'}}>
-            <h2 style={{fontSize:'1.3rem', fontWeight:600, marginTop:0, marginBottom:24}}>항공편 정보</h2>
+      {/* ════════ STEP 1: 항공편 선택 ════════ */}
+      {step === 1 && (
+        <div className="card fade-up">
+          <div className="card-inner">
+            <h2 style={{fontSize:'1.2rem', fontWeight:700, marginBottom:24, color:'var(--c-gray-800)'}}>항공편 정보</h2>
 
             {/* 여정 타입 */}
-            <div style={{marginBottom:28}}>
+            <div style={{marginBottom:24}}>
               <div style={{display:'flex', gap:8}}>
                 {[
-                  {v:'oneway',   l:'✈ 편도'},
-                  {v:'roundtrip',l:'🔄 왕복'},
-                  {v:'layover',  l:'🛑 경유/Layover'},
+                  {v:'oneway', l:'✈ 편도'},
+                  {v:'roundtrip', l:'🔄 왕복'},
+                  {v:'layover', l:'🛑 경유/Stopover'},
                 ].map(opt => (
-                  <button key={opt.v} onClick={() => {setTripType(opt.v); setLayovers([]); setRetDate('');}}
-                    style={{flex:1, padding:'10px 6px', fontSize:'0.88rem', fontWeight:500,
-                      border: '1.5px solid '+(tripType===opt.v ? '#1a73e8' : '#ddd'),
-                      borderRadius:8, background: tripType===opt.v ? '#e8f0fe' : '#fff',
-                      color: tripType===opt.v ? '#1a73e8' : '#666', cursor:'pointer', fontFamily:'inherit'}}>
+                  <button key={opt.v}
+                    onClick={() => { setTripType(opt.v); setLayovers([]); }}
+                    className={'trip-btn' + (tripType === opt.v ? ' active' : '')}>
                     {opt.l}
                   </button>
                 ))}
               </div>
+              {tripType === 'roundtrip' && (
+                <div className="notice notice-info" style={{marginTop:10}}>
+                  🔄 왕복 선택 시 필요 마일이 <strong>×2</strong>로 계산됩니다.
+                </div>
+              )}
               {tripType === 'layover' && (
-                <div style={{marginTop:10, padding:'10px 14px', background:'#f3f4f6',
-                  borderRadius:8, fontSize:'0.82rem', color:'#555', lineHeight:1.7}}>
-                  💡 <strong>Stopover/Layover</strong>: 최종 목적지로 가는 도중 경유지에서 며칠 머무르는 여정입니다. 스타얼라이언스·원월드 등 파트너 항공사를 이용하면 동일 마일로 경유지를 추가할 수 있는 경우가 있습니다.
+                <div className="notice notice-info" style={{marginTop:10}}>
+                  💡 <strong>Stopover 안내</strong>: 대부분의 프로그램은 출발지→최종 목적지 기준으로 마일을 청구합니다. 경유지는 결과에 참고 정보로 표시되며, <strong>마일 계산은 출발-도착 존(Zone) 기준</strong>으로 이루어집니다.
                 </div>
               )}
             </div>
 
             {/* 출발 공항 */}
             <AirportInput label="출발 공항" placeholder="공항명 또는 코드 입력 (예: ICN, 인천, Tokyo)"
-              search={depSearch} setSearch={setDepSearch}
-              onSelect={ap => setDep(ap.code)}
+              value={dep} search={depSearch} setSearch={setDepSearch}
+              onSelect={ap => setDep(ap.code)} onClear={() => setDep('')}
               excludeCodes={arr ? [arr] : []} />
 
             {/* 도착 공항 */}
             <AirportInput label="도착 공항" placeholder="공항명 또는 코드 입력 (예: NRT, 뉴욕, JFK)"
-              search={arrSearch} setSearch={setArrSearch}
-              onSelect={ap => setArr(ap.code)}
+              value={arr} search={arrSearch} setSearch={setArrSearch}
+              onSelect={ap => setArr(ap.code)} onClear={() => setArr('')}
               excludeCodes={dep ? [dep] : []} />
 
-            {/* 경유지 (Layover) */}
+            {/* FIX: Zone 미지원 공항 경고 */}
+            {hasZoneWarning && (
+              <div className="zone-warn">
+                ⚠️ {!depZone && <span><strong>{dep}</strong> 공항은 현재 Zone 데이터가 없습니다. </span>}
+                {!arrZone && <span><strong>{arr}</strong> 공항은 현재 Zone 데이터가 없습니다. </span>}
+                분석 결과가 제한될 수 있습니다.
+              </div>
+            )}
+
+            {/* Zone 정보 미리보기 */}
+            {step1Valid && depZone && arrZone && (
+              <div style={{fontSize:'0.82rem', color:'var(--c-gray-400)', marginBottom:16, marginTop:-8,
+                padding:'8px 12px', background:'var(--c-gray-50)', borderRadius:'var(--radius-sm)'}}>
+                구간: <strong style={{color:'var(--c-primary)'}}>{ZONE_NAMES[depZone]}</strong>
+                {' → '}
+                <strong style={{color:'var(--c-primary)'}}>{ZONE_NAMES[arrZone]}</strong>
+                <span style={{marginLeft:8, color:'var(--c-gray-300)'}}>({getZoneKey(depZone, arrZone)})</span>
+              </div>
+            )}
+
+            {/* 경유지 */}
             {tripType === 'layover' && (
-              <div style={{marginBottom:24}}>
-                <label style={labelStyle}>
-                  경유 공항 추가
-                  <span style={{fontWeight:400, color:'#999', marginLeft:8}}>({layovers.length}/3)</span>
+              <div style={{marginBottom:20}}>
+                <label className="label">
+                  경유 공항
+                  <span className="label-optional">({layovers.length}/3)</span>
                 </label>
                 {layovers.length > 0 && (
-                  <div style={{display:'flex', flexWrap:'wrap', gap:8, marginBottom:10}}>
-                    {layovers.map((la, li) => {
-                      const ap = AIRPORTS.find(a => a.code === la);
+                  <div style={{display:'flex', flexWrap:'wrap', gap:6, marginBottom:10}}>
+                    {layovers.map((la) => {
+                      const ap = AIRPORT_MAP[la];
                       return (
-                        <div key={li} style={{display:'flex', alignItems:'center', gap:6, padding:'5px 10px',
-                          background:'#e8f0fe', border:'1px solid #c5d8fc', borderRadius:20,
-                          fontSize:'0.84rem', color:'#1557b0'}}>
-                          <strong style={{fontFamily:'monospace'}}>{la}</strong>
+                        <div key={la} className="chip chip-blue">
+                          <strong style={{fontFamily:'var(--font-mono)'}}>{la}</strong>
                           <span>{ap ? ap.city : ''}</span>
-                          <span onClick={() => setLayovers(layovers.filter((_,i)=>i!==li))}
-                            style={{cursor:'pointer', fontWeight:700, marginLeft:2}}>×</span>
+                          <span className="chip-remove"
+                            onClick={() => setLayovers(layovers.filter(l => l !== la))}>×</span>
                         </div>
                       );
                     })}
@@ -868,27 +1421,21 @@ function App() {
                 )}
                 {layovers.length < 3 && (
                   <div style={{position:'relative'}}>
-                    <input type="text" value={layoverSearch}
+                    <input type="text" value={layoverSearch} className="input"
                       onChange={e => {setLayoverSearch(e.target.value); setShowLayover(true);}}
                       onFocus={() => setShowLayover(true)}
                       onBlur={() => setTimeout(() => setShowLayover(false), 200)}
-                      placeholder="경유 공항 검색"
-                      style={{...inputStyle}} />
+                      placeholder="경유 공항 검색" />
                     {showLayover && (
-                      <div style={{position:'absolute', top:'100%', left:0, right:0, marginTop:4,
-                        background:'#fff', border:'1px solid #ddd', borderRadius:8, maxHeight:220,
-                        overflowY:'auto', zIndex:50, boxShadow:'0 4px 12px rgba(0,0,0,0.1)'}}>
+                      <div className="dropdown" style={{maxHeight:220}}>
                         {filterAirports(layoverSearch)
                           .filter(a => a.code !== dep && a.code !== arr && !layovers.includes(a.code))
-                          .map((ap, i) => (
-                            <div key={i}
-                              onMouseDown={() => {setLayovers([...layovers, ap.code]); setLayoverSearch(''); setShowLayover(false);}}
-                              style={{padding:'11px 16px', cursor:'pointer', borderBottom:'1px solid #f5f5f5'}}
-                              onMouseEnter={e => e.currentTarget.style.background='#f8f9fa'}
-                              onMouseLeave={e => e.currentTarget.style.background='#fff'}>
-                              <span style={{fontWeight:700, color:'#1a73e8', fontFamily:'monospace', marginRight:8}}>{ap.code}</span>
-                              <span>{ap.city}</span>
-                              <span style={{float:'right', fontSize:'0.82rem', color:'#999'}}>{ap.name}</span>
+                          .map((ap) => (
+                            <div key={ap.code} className="dropdown-item"
+                              onMouseDown={() => {setLayovers([...layovers, ap.code]); setLayoverSearch(''); setShowLayover(false);}}>
+                              <span style={{fontWeight:700, color:'var(--c-primary)', fontFamily:'var(--font-mono)', minWidth:38}}>{ap.code}</span>
+                              <span style={{flex:1}}>{ap.city}</span>
+                              <span style={{fontSize:'0.78rem', color:'var(--c-gray-400)'}}>{ap.name}</span>
                             </div>
                           ))}
                       </div>
@@ -900,300 +1447,369 @@ function App() {
 
             {/* 여행 인원 */}
             <div style={{marginBottom:28}}>
-              <label style={labelStyle}>여행 인원</label>
-              <div style={{display:'flex'}}>
+              <label className="label">여행 인원</label>
+              <div className="pax-stepper">
                 <button onClick={() => setPassengers(Math.max(1, passengers-1))}
-                  style={{width:44, height:50, border:'1px solid #ddd', borderRight:'none',
-                    borderRadius:'8px 0 0 8px', background:'#f5f5f5', fontSize:'1.2rem',
-                    cursor:'pointer', fontFamily:'inherit', color:'#555'}}>−</button>
-                <div style={{flex:1, height:50, border:'1px solid #ddd', display:'flex',
-                  alignItems:'center', justifyContent:'center', fontSize:'1rem', fontWeight:600}}>
-                  {passengers}명
-                </div>
+                  className="btn btn-outline pax-btn pax-btn-left"
+                  aria-label="인원 감소">−</button>
+                <div className="pax-display">{passengers}명</div>
                 <button onClick={() => setPassengers(Math.min(9, passengers+1))}
-                  style={{width:44, height:50, border:'1px solid #ddd', borderLeft:'none',
-                    borderRadius:'0 8px 8px 0', background:'#f5f5f5', fontSize:'1.2rem',
-                    cursor:'pointer', fontFamily:'inherit', color:'#555'}}>+</button>
+                  className="btn btn-outline pax-btn pax-btn-right"
+                  aria-label="인원 증가">+</button>
               </div>
             </div>
 
             <button onClick={() => step1Valid && setStep(2)} disabled={!step1Valid}
-              style={{width:'100%', padding:15, fontSize:'1rem', fontWeight:600, border:'none',
-                borderRadius:8, cursor: step1Valid ? 'pointer':'not-allowed', fontFamily:'inherit',
-                background: step1Valid ? '#1a73e8':'#e0e0e0',
-                color: step1Valid ? '#fff':'#999'}}>
+              className="btn btn-primary btn-full">
               다음 단계 →
             </button>
           </div>
-        )}
+        </div>
+      )}
 
-        {/* ════════ STEP 2 ════════ */}
-        {step === 2 && (
-          <div style={{background:'#fff', border:'1px solid #e0e0e0', borderRadius:12, padding:36}}>
-            <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
-              <h2 style={{fontSize:'1.3rem', fontWeight:600, margin:0}}>보유 마일/포인트 입력</h2>
-              <button onClick={() => setStep(1)}
-                style={{fontSize:'0.85rem', color:'#1a73e8', background:'none', border:'none', cursor:'pointer', fontFamily:'inherit'}}>
-                ← 이전
-              </button>
+      {/* ════════ STEP 2: 포인트 입력 ════════ */}
+      {step === 2 && (
+        <div className="card fade-up">
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:24}}>
+            <h2 style={{fontSize:'1.2rem', fontWeight:700, color:'var(--c-gray-800)'}}>보유 마일/포인트 입력</h2>
+            <button onClick={() => setStep(1)} className="btn btn-outline btn-sm">← 이전</button>
+          </div>
+
+          {/* 프로그램 추가 폼 */}
+          <div style={{background:'var(--c-gray-50)', borderRadius:'var(--radius-md)', padding:20, marginBottom:24,
+            border:'1px solid var(--c-gray-100)'}}>
+            <div className="add-row" style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+              <select value={selProgram} onChange={e => setSelProgram(e.target.value)}
+                className="input select"
+                style={{flex:2, minWidth:200}}
+                aria-label="프로그램 선택">
+                <option value="">프로그램 선택</option>
+                <optgroup label="── 항공 마일리지 ──">
+                  {PROGRAMS.filter(p=>p.cat==='항공').map(p => (
+                    <option key={p.code} value={p.name}>[{p.code}] {p.name}</option>
+                  ))}
+                </optgroup>
+                <optgroup label="── 신용카드 포인트 ──">
+                  {PROGRAMS.filter(p=>p.cat==='카드').map(p => (
+                    <option key={p.code} value={p.name}>[{p.code}] {p.name}</option>
+                  ))}
+                </optgroup>
+              </select>
+              <input type="text" inputMode="numeric" value={selPoints}
+                onChange={e => handlePointsInput(e.target.value)}
+                onKeyDown={e => { if (e.key === 'Enter') addPoints(); }}
+                placeholder="보유 포인트"
+                className="input"
+                style={{flex:1, minWidth:130}}
+                aria-label="포인트 수량" />
+              <button onClick={addPoints} className="btn btn-primary" style={{minWidth:70}}>추가</button>
             </div>
+          </div>
 
-            {/* 프로그램 추가 */}
-            <div style={{background:'#f8f9fa', borderRadius:10, padding:20, marginBottom:24}}>
-              <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
-                <select value={selProgram} onChange={e => setSelProgram(e.target.value)}
-                  style={{flex:2, minWidth:200, padding:'12px 14px', fontSize:'0.95rem',
-                    border:'1px solid #ddd', borderRadius:8, fontFamily:'inherit', background:'#fff'}}>
-                  <option value="">프로그램 선택</option>
-                  <optgroup label="── 항공 마일리지 ──">
-                    {PROGRAMS.filter(p=>p.cat==='항공').map((p,i) => (
-                      <option key={i} value={p.name}>[{p.code}] {p.name}</option>
-                    ))}
-                  </optgroup>
-                  <optgroup label="── 신용카드 포인트 ──">
-                    {PROGRAMS.filter(p=>p.cat==='카드').map((p,i) => (
-                      <option key={i} value={p.name}>[{p.code}] {p.name}</option>
-                    ))}
-                  </optgroup>
-                </select>
-                <input type="number" value={selPoints} onChange={e => setSelPoints(e.target.value)}
-                  placeholder="보유 포인트"
-                  style={{flex:1, minWidth:120, padding:'12px 14px', fontSize:'0.95rem',
-                    border:'1px solid #ddd', borderRadius:8, fontFamily:'inherit'}} />
-                <button onClick={addPoints}
-                  style={{padding:'12px 22px', fontSize:'0.95rem', fontWeight:600, border:'none',
-                    borderRadius:8, background:'#1a73e8', color:'#fff', cursor:'pointer', fontFamily:'inherit'}}>
-                  추가
-                </button>
-              </div>
-            </div>
-
-            {/* 추가된 포인트 목록 */}
-            {pointsList.length > 0 && (
-              <div style={{marginBottom:24}}>
-                {pointsList.map((item, idx) => {
-                  const prog = PROGRAMS.find(p => p.name === item.program);
-                  return (
-                    <div key={idx} style={{display:'flex', justifyContent:'space-between', alignItems:'center',
-                      padding:'14px 18px', border:'1px solid #e0e0e0', borderRadius:10, marginBottom:10, background:'#fff'}}>
-                      <div style={{display:'flex', alignItems:'center', gap:12}}>
-                        <div style={{width:36, height:36, borderRadius:8, background: prog ? prog.color:'#888',
-                          display:'flex', alignItems:'center', justifyContent:'center',
-                          color:'#fff', fontWeight:700, fontSize:'0.7rem', fontFamily:'monospace'}}>
-                          {prog ? prog.code.slice(0,4) : '?'}
-                        </div>
-                        <div>
-                          <div style={{fontWeight:600, fontSize:'0.95rem'}}>{item.program}</div>
-                          <div style={{fontSize:'0.88rem', color:'#1a73e8', fontFamily:'monospace'}}>
-                            {item.points.toLocaleString()} 포인트
-                          </div>
+          {/* 추가된 포인트 목록 */}
+          {pointsList.length > 0 && (
+            <div style={{marginBottom:24}}>
+              {pointsList.map((item) => {
+                const prog = PROGRAM_MAP[item.program];
+                return (
+                  <div key={item.program} className="points-item fade-up">
+                    <div style={{display:'flex', alignItems:'center', gap:12}}>
+                      <div className="points-item-icon" style={{background: prog ? prog.color : '#888'}}>
+                        {prog ? prog.code.slice(0,4) : '?'}
+                      </div>
+                      <div>
+                        <div style={{fontWeight:600, fontSize:'0.92rem', color:'var(--c-gray-800)'}}>{item.program}</div>
+                        <div style={{fontSize:'0.88rem', color:'var(--c-primary)', fontFamily:'var(--font-mono)', fontWeight:500}}>
+                          {formatNumber(item.points)} P
                         </div>
                       </div>
-                      <button onClick={() => setPointsList(pointsList.filter((_,i)=>i!==idx))}
-                        style={{background:'none', border:'1px solid #ddd', borderRadius:6,
-                          padding:'5px 12px', cursor:'pointer', fontSize:'0.82rem', color:'#888', fontFamily:'inherit'}}>
-                        삭제
-                      </button>
+                    </div>
+                    <button onClick={() => setPointsList(pointsList.filter(p => p.program !== item.program))}
+                      className="btn btn-outline btn-sm">삭제</button>
+                  </div>
+                );
+              })}
+            </div>
+          )}
+
+          {pointsList.length === 0 && (
+            <div style={{textAlign:'center', padding:'32px 20px', color:'var(--c-gray-400)', fontSize:'0.92rem', marginBottom:20}}>
+              프로그램을 선택하고 보유 포인트를 입력해주세요
+            </div>
+          )}
+
+          <div className="btn-row" style={{display:'flex', gap:10}}>
+            <button onClick={() => setStep(1)} className="btn btn-outline" style={{flex:1, padding:14}}>이전</button>
+            <button onClick={analyze} disabled={pointsList.length === 0}
+              className="btn btn-primary" style={{flex:2, padding:14}}>
+              발권 차트 분석 →
+            </button>
+          </div>
+        </div>
+      )}
+
+      {/* ════════ LOADING ════════ */}
+      {loading && (
+        <div style={{textAlign:'center', padding:'60px 20px', color:'var(--c-gray-500)'}}>
+          <div className="loading-plane" style={{fontSize:'2.5rem', marginBottom:16}}>✈️</div>
+          <div style={{fontSize:'1.05rem', fontWeight:600}}>마일 차트 분석 중...</div>
+          <div style={{fontSize:'0.84rem', color:'var(--c-gray-400)', marginTop:6}}>
+            {pointsList.length}개 프로그램의 차트를 비교하고 있습니다
+          </div>
+        </div>
+      )}
+
+      {/* ════════ STEP 3: 결과 ════════ */}
+      {/* 발권 완료 후 화면 */}
+      {step === 'booked' && (
+        <div className="fade-up">
+          <div style={{textAlign:'center', padding:'30px 20px', marginBottom:20}}>
+            <div style={{fontSize:'3rem', marginBottom:12}}>🎉</div>
+            <h2 style={{fontSize:'1.3rem', fontWeight:700, color:'var(--c-gray-800)', marginBottom:8}}>
+              발권이 완료되었습니다!
+            </h2>
+            <p style={{fontSize:'0.9rem', color:'var(--c-gray-500)', lineHeight:1.6}}>
+              남은 포인트로 추가 발권을 하시겠습니까?
+            </p>
+          </div>
+
+          {/* 발권 내역 */}
+          {bookedTickets.length > 0 && (
+            <div style={{background:'#fff', border:'1px solid var(--c-gray-200)',
+              borderRadius:'var(--radius-lg)', padding:20, marginBottom:20,
+              boxShadow:'var(--shadow-sm)'}}>
+              <h3 style={{fontSize:'1rem', fontWeight:700, color:'var(--c-gray-800)',
+                marginBottom:14, display:'flex', alignItems:'center', gap:8}}>
+                🎫 발권 내역
+                <span style={{fontSize:'0.8rem', fontWeight:400, color:'var(--c-gray-400)'}}>
+                  {bookedTickets.length}건
+                </span>
+              </h3>
+              {bookedTickets.map((t, i) => (
+                <div key={t.id} className="ticket-item" style={{display:'flex', justifyContent:'space-between',
+                  alignItems:'center', padding:'12px 14px', marginBottom:8,
+                  background:'var(--c-primary-bg)', borderRadius:'var(--radius-sm)',
+                  border:'1px solid rgba(37,99,235,0.1)', flexWrap:'wrap', gap:8}}>
+                  <div style={{flex:1, minWidth:200}}>
+                    <div style={{fontWeight:600, fontSize:'0.88rem', color:'var(--c-gray-800)'}}>
+                      <span style={{marginRight:6}}>#{i+1}</span>
+                      {t.airlineName} — {CABIN_KO[t.cabin]}
+                    </div>
+                    <div style={{fontSize:'0.78rem', color:'var(--c-gray-500)', marginTop:3}}>
+                      {t.route} · {t.tripType==='oneway'?'편도':t.tripType==='roundtrip'?'왕복':'경유'}
+                      · {t.passengers}명
+                    </div>
+                  </div>
+                  <div style={{textAlign:'right', minWidth:120}}>
+                    <div style={{fontFamily:'var(--font-mono)', fontWeight:700,
+                      fontSize:'0.95rem', color:'var(--c-primary)'}}>
+                      {formatNumber(t.milesUsed)} mi
+                    </div>
+                    {t.isCard && (
+                      <div style={{fontSize:'0.7rem', color:'var(--c-gray-400)'}}>
+                        ({formatNumber(t.pointsDeducted)} P 차감)
+                      </div>
+                    )}
+                  </div>
+                  <button onClick={() => cancelTicket(t.id)}
+                    style={{background:'none', border:'1px solid var(--c-danger)',
+                      color:'var(--c-danger)', borderRadius:'var(--radius-sm)',
+                      padding:'4px 10px', fontSize:'0.72rem', cursor:'pointer',
+                      fontWeight:500, whiteSpace:'nowrap'}}>
+                    ✕ 취소
+                  </button>
+                </div>
+              ))}
+              {/* 총합 */}
+              <div style={{marginTop:10, paddingTop:10, borderTop:'1px solid var(--c-gray-200)',
+                display:'flex', justifyContent:'flex-end', alignItems:'center', gap:12}}>
+                <span style={{fontSize:'0.82rem', color:'var(--c-gray-500)'}}>총 사용:</span>
+                <span style={{fontFamily:'var(--font-mono)', fontWeight:700, fontSize:'1.05rem',
+                  color:'var(--c-primary)'}}>
+                  {formatNumber(bookedTickets.reduce((sum, t) => sum + t.milesUsed, 0))} mi
+                </span>
+              </div>
+            </div>
+          )}
+
+          {/* 잔여 포인트 현황 */}
+          <div style={{background:'#fff', border:'1px solid var(--c-gray-200)',
+            borderRadius:'var(--radius-lg)', padding:20, marginBottom:24,
+            boxShadow:'var(--shadow-sm)'}}>
+            <h3 style={{fontSize:'1rem', fontWeight:700, color:'var(--c-gray-800)',
+              marginBottom:14}}>
+              💰 잔여 포인트
+            </h3>
+            {pointsList.filter(p => p.points > 0).length === 0 ? (
+              <div style={{color:'var(--c-gray-400)', fontSize:'0.88rem', textAlign:'center', padding:12}}>
+                사용 가능한 포인트가 없습니다
+              </div>
+            ) : (
+              <div style={{display:'flex', flexWrap:'wrap', gap:10}}>
+                {pointsList.filter(p => p.points > 0).map((p, i) => {
+                  const prog = PROGRAM_MAP[p.program];
+                  return (
+                    <div key={i} style={{display:'flex', alignItems:'center', gap:8,
+                      background:'var(--c-gray-50)', padding:'8px 14px',
+                      borderRadius:'var(--radius-sm)', border:'1px solid var(--c-gray-100)'}}>
+                      <div style={{width:8, height:8, borderRadius:'50%',
+                        background:prog?.color || 'var(--c-gray-300)'}} />
+                      <span style={{fontSize:'0.82rem', color:'var(--c-gray-600)'}}>{p.program}</span>
+                      <span style={{fontFamily:'var(--font-mono)', fontWeight:700,
+                        fontSize:'0.88rem', color:'var(--c-gray-800)'}}>
+                        {formatNumber(p.points)}
+                      </span>
                     </div>
                   );
                 })}
               </div>
             )}
+          </div>
 
-            {pointsList.length === 0 && (
-              <div style={{textAlign:'center', padding:'30px', color:'#bbb', fontSize:'0.95rem', marginBottom:20}}>
-                포인트를 1개 이상 추가해주세요
-              </div>
+          {/* 액션 버튼 */}
+          <div style={{display:'flex', gap:12, justifyContent:'center', flexWrap:'wrap'}}>
+            {pointsList.some(p => p.points > 0) && (
+              <>
+                <button onClick={reAnalyze} className="btn btn-primary"
+                  style={{padding:'13px 32px', fontSize:'0.95rem'}}>
+                  🔄 같은 노선 재검색
+                </button>
+                <button onClick={searchAgain} className="btn btn-outline"
+                  style={{padding:'13px 32px', fontSize:'0.95rem'}}>
+                  ✈️ 다른 노선 검색
+                </button>
+              </>
             )}
+            <button onClick={reset} className="btn btn-accent"
+              style={{padding:'13px 32px', fontSize:'0.95rem'}}>
+              🔄 처음부터 다시
+            </button>
+          </div>
+        </div>
+      )}
 
-            <div style={{display:'flex', gap:10}}>
-              <button onClick={() => setStep(1)}
-                style={{flex:1, padding:14, fontSize:'1rem', fontWeight:600, border:'1px solid #ddd',
-                  borderRadius:8, background:'#fff', color:'#555', cursor:'pointer', fontFamily:'inherit'}}>
-                이전
-              </button>
-              <button onClick={analyze} disabled={pointsList.length === 0}
-                style={{flex:2, padding:14, fontSize:'1rem', fontWeight:600, border:'none',
-                  borderRadius:8, fontFamily:'inherit', cursor: pointsList.length>0?'pointer':'not-allowed',
-                  background: pointsList.length>0 ? '#1a73e8':'#e0e0e0',
-                  color: pointsList.length>0 ? '#fff':'#999'}}>
-                발권 차트 분석 →
-              </button>
+      {step === 3 && !loading && result && (
+        <div className="fade-up">
+          {/* 검색 요약 */}
+          <div style={{background:'#fff', border:'1px solid var(--c-gray-200)', borderRadius:'var(--radius-md)',
+            padding:'14px 20px', marginBottom:8, display:'flex', flexWrap:'wrap', gap:12,
+            fontSize:'0.88rem', color:'var(--c-gray-600)', boxShadow:'var(--shadow-sm)'}}>
+            <span style={{fontWeight:600}}>
+              {tripType==='oneway' ? '✈️ 편도' : tripType==='roundtrip' ? '🔄 왕복' : '🛑 경유'}
+            </span>
+            <span>
+              <strong style={{color:'var(--c-gray-800)', fontFamily:'var(--font-mono)'}}>
+                {dep}
+                {tripType==='layover' && layovers.length > 0 ? ' → '+layovers.join(' → ') : ''}
+                {' → '}{arr}
+                {tripType==='roundtrip' ? ' → '+dep : ''}
+              </strong>
+            </span>
+            <span>👤 <strong style={{color:'var(--c-gray-800)'}}>{passengers}명</strong></span>
+            {tripType === 'roundtrip' && (
+              <span className="chip" style={{background:'var(--c-warning-bg)', color:'var(--c-warning)',
+                border:'1px solid var(--c-warning-border)', fontSize:'0.75rem', padding:'2px 8px'}}>
+                마일 ×2 적용
+              </span>
+            )}
+            {/* 빠른 수정 버튼 */}
+            <button onClick={() => setStep(1)} className="btn-link" style={{marginLeft:'auto'}}>
+              ✏️ 노선 수정
+            </button>
+          </div>
+
+          {/* Zone 표시 */}
+          {result.depZ && result.arrZ && (
+            <div style={{textAlign:'right', fontSize:'0.82rem', color:'var(--c-gray-400)', marginBottom:20}}>
+              구간: <strong style={{color:'var(--c-primary)'}}>{ZONE_NAMES[result.depZ]}</strong>
+              {' → '}
+              <strong style={{color:'var(--c-primary)'}}>{ZONE_NAMES[result.arrZ]}</strong>
+              <span style={{marginLeft:8, color:'var(--c-gray-300)'}}>({result.zKey})</span>
             </div>
-          </div>
-        )}
+          )}
 
-        {/* ════════ LOADING ════════ */}
-        {loading && (
-          <div style={{textAlign:'center', padding:'60px 20px', color:'#555'}}>
-            <div style={{fontSize:'2.5rem', marginBottom:16}}>✈️</div>
-            <div style={{fontSize:'1.1rem', fontWeight:600}}>마일 차트 분석 중...</div>
-          </div>
-        )}
-
-        {/* ════════ STEP 3 ════════ */}
-        {step === 3 && !loading && result && (
-          <div>
-            {/* 검색 요약 */}
-            <div style={{background:'#f8f9fa', border:'1px solid #e0e0e0', borderRadius:10,
-              padding:'14px 20px', marginBottom:8, display:'flex', flexWrap:'wrap', gap:14,
-              fontSize:'0.88rem', color:'#555'}}>
-              <span>
-                {tripType==='oneway' ? '✈️ 편도' : tripType==='roundtrip' ? '🔄 왕복' : '🛑 경유'}
-              </span>
-              <span>
-                <strong style={{color:'#333'}}>
-                  {dep}
-                  {tripType==='layover' && layovers.length > 0 ? ' → '+layovers.join(' → ') : ''}
-                  {' → '}{arr}
-                  {tripType==='roundtrip' ? ' → '+dep : ''}
-                </strong>
-              </span>
-              <span>👤 <strong style={{color:'#333'}}>{passengers}명</strong></span>
-              {tripType !== 'oneway' && (
-                <span style={{color:'#999', fontSize:'0.8rem'}}>
-                  (마일 ×{Number.isInteger(result.multiplier) ? result.multiplier : result.multiplier.toFixed(1)} 적용)
+          {/* 기존 발권 내역 미니 표시 */}
+          {bookedTickets.length > 0 && (
+            <div style={{background:'var(--c-primary-bg)', border:'1px solid rgba(37,99,235,0.15)',
+              borderRadius:'var(--radius-md)', padding:'12px 16px', marginBottom:16,
+              fontSize:'0.82rem'}}>
+              <div style={{display:'flex', alignItems:'center', justifyContent:'space-between',
+                flexWrap:'wrap', gap:8}}>
+                <span style={{fontWeight:600, color:'var(--c-primary)'}}>
+                  🎫 발권 {bookedTickets.length}건 완료
                 </span>
-              )}
+                <div style={{display:'flex', gap:10, flexWrap:'wrap'}}>
+                  {bookedTickets.map((t, i) => (
+                    <span key={t.id} style={{color:'var(--c-gray-600)', fontSize:'0.78rem'}}>
+                      #{i+1} {CABIN_KO[t.cabin]} {formatNumber(t.milesUsed)}mi
+                    </span>
+                  ))}
+                </div>
+              </div>
             </div>
+          )}
 
-            {/* Zone 표시 */}
-            {result.depZ && result.arrZ && (
-              <div style={{textAlign:'right', fontSize:'0.82rem', color:'#999', marginBottom:24}}>
-                구간: <strong style={{color:'#1a73e8'}}>{ZONE_NAMES[result.depZ]}</strong>
-                {' → '}
-                <strong style={{color:'#1a73e8'}}>{ZONE_NAMES[result.arrZ]}</strong>
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center',
+            marginBottom:16, flexWrap:'wrap', gap:8}}>
+            <h2 style={{fontSize:'1.2rem', fontWeight:700, color:'var(--c-gray-800)'}}>
+              마일 차트 발권 분석
+              <span style={{fontSize:'0.85rem', fontWeight:400, color:'var(--c-gray-400)', marginLeft:8}}>
+                {result.rows.length}개 결과
+              </span>
+            </h2>
+
+            {/* 정렬 옵션 */}
+            {result.rows.length > 1 && (
+              <div className="sort-bar" style={{marginBottom:0}}>
+                {[
+                  {id:'class', label:'🏆 클래스순'},
+                  {id:'miles_asc', label:'💰 마일 적은순'},
+                  {id:'fuel', label:'⛽ 유류할증 낮은순'},
+                ].map(s => (
+                  <button key={s.id}
+                    className={'sort-btn' + (sortMode === s.id ? ' active' : '')}
+                    onClick={() => setSortMode(s.id)}>
+                    {s.label}
+                  </button>
+                ))}
               </div>
             )}
-
-            <h2 style={{fontSize:'1.3rem', fontWeight:600, marginBottom:18}}>마일 차트 발권 분석</h2>
-
-            {/* 결과 없음 */}
-            {result.rows.length === 0 && (
-              <div style={{textAlign:'center', padding:'50px 20px', background:'#fff',
-                border:'1px solid #e0e0e0', borderRadius:12, color:'#888'}}>
-                <div style={{fontSize:'2.5rem', marginBottom:12}}>🔍</div>
-                <div style={{fontSize:'1rem', fontWeight:600, color:'#555', marginBottom:8}}>
-                  이 노선의 마일 차트 데이터가 없습니다
-                </div>
-                <div style={{fontSize:'0.88rem'}}>
-                  입력하신 공항 또는 프로그램의 노선 데이터가 준비 중입니다
-                </div>
-              </div>
-            )}
-
-            {/* 결과 카드 */}
-            {result.rows.map((r, idx) => {
-              const hasAny = r.cabins.some(c => c.canAfford);
-              return (
-                <div key={idx} style={{background:'#fff', border:'1px solid '+(hasAny?'#90caf9':'#e0e0e0'),
-                  borderRadius:12, padding:22, marginBottom:14,
-                  boxShadow: hasAny ? '0 2px 8px rgba(26,115,232,0.07)' : 'none'}}>
-
-                  {/* 카드 헤더 */}
-                  <div style={{display:'flex', alignItems:'flex-start', justifyContent:'space-between',
-                    marginBottom:16, gap:12, flexWrap:'wrap'}}>
-                    <div style={{display:'flex', alignItems:'center', gap:12}}>
-                      <div style={{width:42, height:42, borderRadius:9, background:r.programColor,
-                        display:'flex', alignItems:'center', justifyContent:'center', flexShrink:0}}>
-                        <span style={{color:'#fff', fontWeight:700, fontSize:'0.68rem', fontFamily:'monospace'}}>
-                          {PROGRAMS.find(p=>p.name===r.programName)?.code?.slice(0,5) || '?'}
-                        </span>
-                      </div>
-                      <div>
-                        <div style={{fontWeight:700, fontSize:'1rem', color:'#1a1a1a'}}>{r.programName}</div>
-                        {r.isCard && (
-                          <div style={{fontSize:'0.8rem', color:'#1a73e8', marginTop:2}}>→ {r.transferLabel} 이전 후 사용</div>
-                        )}
-                        {r.isCard && r.targetName && (
-                          <div style={{fontSize:'0.78rem', color:'#888', marginTop:1}}>{r.targetName}</div>
-                        )}
-                        {!r.isCard && r.note && (
-                          <div style={{fontSize:'0.78rem', color:'#888', marginTop:2}}>{r.note}</div>
-                        )}
-                      </div>
-                    </div>
-                    <div style={{textAlign:'right'}}>
-                      <div style={{fontSize:'0.78rem', color:'#999'}}>보유 포인트</div>
-                      <div style={{fontWeight:700, fontFamily:'monospace', fontSize:'1rem', color:'#333'}}>
-                        {r.userPoints.toLocaleString()} P
-                      </div>
-                    </div>
-                  </div>
-
-                  {/* 캐빈별 표 */}
-                  <div style={{display:'grid', gridTemplateColumns:'repeat('+r.cabins.length+', 1fr)', gap:8}}>
-                    {r.cabins.map((c, ci) => {
-                      const bg = c.canAfford===true ? '#e8f5e9' : c.canAfford===false ? '#fafafa' : '#fff8e1';
-                      const bdr = c.canAfford===true ? '#a5d6a7' : c.canAfford===false ? '#e0e0e0' : '#ffe082';
-                      const txt = c.canAfford===true ? '#2e7d32' : c.canAfford===false ? '#aaa' : '#e65100';
-                      const badgeBg = c.canAfford===true ? '#4caf50' : c.canAfford===false ? '#bdbdbd' : '#ff9800';
-                      const badge = c.canAfford===true ? '✓ 발권 가능' : c.canAfford===false ? '✗ 마일 부족' : '〜 범위 확인';
-                      return (
-                        <div key={ci} style={{padding:'13px 10px', borderRadius:8,
-                          border:'1px solid '+bdr, background:bg, textAlign:'center'}}>
-                          <div style={{fontSize:'0.78rem', color:'#666', fontWeight:500, marginBottom:5}}>
-                            {CABIN_KO[c.cabin]}
-                          </div>
-                          <div style={{fontWeight:700, fontSize:'1.05rem', color:txt,
-                            fontFamily:'monospace', marginBottom:8}}>
-                            {c.display}
-                            <span style={{fontWeight:400, fontSize:'0.75rem', marginLeft:2}}>마일</span>
-                          </div>
-                          <div style={{display:'inline-block', padding:'3px 9px', background:badgeBg,
-                            color:'#fff', borderRadius:20, fontSize:'0.72rem', fontWeight:600}}>
-                            {badge}
-                          </div>
-                        </div>
-                      );
-                    })}
-                  </div>
-
-                  {r.dynamic && (
-                    <div style={{marginTop:10, fontSize:'0.78rem', color:'#e65100'}}>
-                      ⚠️ 동적 가격제 적용 프로그램 — 실제 마일은 시기에 따라 변동됩니다
-                    </div>
-                  )}
-
-                  {/* 예약 바로가기 버튼 */}
-                  {r.bookUrl && (
-                    <a href={r.bookUrl} target="_blank" rel="noopener noreferrer"
-                      style={{
-                        display: 'flex', alignItems: 'center', justifyContent: 'center', gap: 8,
-                        marginTop: 14, padding: '11px 16px',
-                        background: hasAny ? '#1a73e8' : '#f5f5f5',
-                        color: hasAny ? '#fff' : '#666',
-                        borderRadius: 8, textDecoration: 'none',
-                        fontSize: '0.88rem', fontWeight: 600,
-                        border: hasAny ? 'none' : '1px solid #ddd',
-                      }}
-                    >
-                      {r.btnLabel} ↗
-                    </a>
-                  )}
-                </div>
-              );
-            })}
-
-            {/* 면책 고지 */}
-            {result.rows.length > 0 && (
-              <div style={{marginTop:16, padding:'13px 18px', background:'#fff8e1',
-                border:'1px solid #ffe082', borderRadius:8, fontSize:'0.81rem', color:'#795548', lineHeight:1.7}}>
-                📋 <strong>이 결과는 마일리지 차트 기반 추정치입니다.</strong> 실제 좌석 가용성·유류할증료·세금은 각 항공사 예약 시 확인하세요. 파트너 항공사 발권 시 차트가 다를 수 있습니다.
-              </div>
-            )}
-
-            <div style={{textAlign:'center', marginTop:28}}>
-              <button onClick={reset}
-                style={{padding:'13px 40px', fontSize:'1rem', fontWeight:600, background:'#fff',
-                  color:'#1a73e8', border:'2px solid #1a73e8', borderRadius:8, cursor:'pointer', fontFamily:'inherit'}}>
-                새로운 검색
-              </button>
-            </div>
           </div>
-        )}
 
-      </div>
+          {/* 결과 없음 */}
+          {result.rows.length === 0 && (
+            <div style={{textAlign:'center', padding:'50px 20px', background:'#fff',
+              border:'1px solid var(--c-gray-200)', borderRadius:'var(--radius-lg)', color:'var(--c-gray-400)'}}>
+              <div style={{fontSize:'2.5rem', marginBottom:12}}>🔍</div>
+              <div style={{fontSize:'1rem', fontWeight:600, color:'var(--c-gray-600)', marginBottom:8}}>
+                이 노선의 마일 차트 데이터가 없습니다
+              </div>
+              <div style={{fontSize:'0.86rem', lineHeight:1.6}}>
+                <strong>{ZONE_NAMES[result.depZ] || '?'} → {ZONE_NAMES[result.arrZ] || '?'}</strong> 구간({result.zKey || '?'})의 차트가 등록되어 있지 않습니다.
+                <br/>입력한 프로그램이 이 구간을 지원하지 않거나, 데이터가 아직 추가되지 않았을 수 있습니다.
+              </div>
+            </div>
+          )}
+
+          {/* 결과 카드 */}
+          {sortedRows.map((r, idx) => (
+            <ResultCard key={r.id + '-' + idx} r={r} idx={idx} result={result} onBook={handleBook} />
+          ))}
+
+          {/* 면책 고지 */}
+          {result.rows.length > 0 && (
+            <div className="notice notice-warn" style={{marginTop:16}}>
+              📋 <strong>이 결과는 마일리지 차트 기반 추정치입니다.</strong> 실제 좌석 가용성·유류할증료·세금은 각 항공사 예약 시 확인하세요. 파트너 항공사 발권 시 차트가 다를 수 있습니다. 카드 포인트 전환 비율은 수시로 변경될 수 있으니 전환 전 최신 정보를 확인하세요.
+            </div>
+          )}
+
+          <div style={{textAlign:'center', marginTop:28}}>
+            <button onClick={reset} className="btn btn-accent" style={{padding:'13px 44px', fontSize:'0.95rem'}}>
+              새로운 검색
+            </button>
+          </div>
+        </div>
+      )}
     </div>
   );
 }
