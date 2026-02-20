@@ -1438,132 +1438,6 @@ function ResultCard({r, idx, result, onBook}) {
   );
 }
 
-// ─── PointsTimeline 시각화 컴포넌트 ─────────────────
-function PointsTimeline({openDate, expDate}) {
-  if (!openDate && !expDate) return null;
-
-  const today = new Date();
-  today.setHours(0,0,0,0);
-  const open = openDate ? new Date(openDate + 'T00:00:00') : null;
-  const exp = expDate ? new Date(expDate + 'T00:00:00') : null;
-
-  // 날짜 차이 (일)
-  function diffDays(a, b) { return Math.round((b - a) / (1000*60*60*24)); }
-  function fmtDate(d) { return d.toLocaleDateString('ko-KR', {year:'numeric', month:'short', day:'numeric'}); }
-
-  // 마감일만 있는 경우
-  const daysLeft = exp ? diffDays(today, exp) : null;
-  const totalDays = (open && exp) ? diffDays(open, exp) : null;
-  const elapsed = (open && exp) ? diffDays(open, today) : null;
-  const pct = (totalDays && totalDays > 0) ? Math.max(0, Math.min(100, (elapsed / totalDays) * 100)) : null;
-
-  // 상태 결정
-  let urgency, urgLabel, urgColor, urgBg, urgBorder, urgIcon;
-  if (daysLeft !== null) {
-    if (daysLeft < 0) {
-      urgency = 'expired'; urgLabel = '만료됨'; urgColor = '#991B1B'; urgBg = '#FEF2F2'; urgBorder = '#FECACA'; urgIcon = '💀';
-    } else if (daysLeft <= 7) {
-      urgency = 'critical'; urgLabel = 'D-'+daysLeft; urgColor = '#DC2626'; urgBg = '#FEF2F2'; urgBorder = '#FCA5A5'; urgIcon = '🔥';
-    } else if (daysLeft <= 30) {
-      urgency = 'warning'; urgLabel = 'D-'+daysLeft; urgColor = '#D97706'; urgBg = '#FFFBEB'; urgBorder = '#FCD34D'; urgIcon = '⚠️';
-    } else if (daysLeft <= 90) {
-      urgency = 'caution'; urgLabel = 'D-'+daysLeft; urgColor = '#2563EB'; urgBg = '#EFF6FF'; urgBorder = '#93C5FD'; urgIcon = '📅';
-    } else {
-      urgency = 'safe'; urgLabel = 'D-'+daysLeft; urgColor = '#059669'; urgBg = '#ECFDF5'; urgBorder = '#6EE7B7'; urgIcon = '✅';
-    }
-  }
-
-  // 프로그레스 바 색상
-  function getBarGradient() {
-    if (pct === null) return 'var(--c-gray-200)';
-    if (pct >= 90) return 'linear-gradient(90deg, #059669 0%, #DC2626 100%)';
-    if (pct >= 70) return 'linear-gradient(90deg, #059669 0%, #D97706 100%)';
-    return 'linear-gradient(90deg, #059669 0%, #2563EB 100%)';
-  }
-
-  // 남은 기간 텍스트
-  function remainText() {
-    if (daysLeft === null) return '';
-    if (daysLeft < 0) return `${Math.abs(daysLeft)}일 전에 만료됨`;
-    if (daysLeft === 0) return '오늘 만료!';
-    const months = Math.floor(daysLeft / 30);
-    const days = daysLeft % 30;
-    if (months > 0 && days > 0) return `${months}개월 ${days}일 남음`;
-    if (months > 0) return `${months}개월 남음`;
-    return `${daysLeft}일 남음`;
-  }
-
-  return (
-    <div style={{marginTop:10}}>
-      {/* D-day 배지 + 텍스트 */}
-      {daysLeft !== null && (
-        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
-          <span style={{display:'inline-flex', alignItems:'center', gap:4,
-            padding:'3px 10px', borderRadius:20, fontSize:'0.74rem', fontWeight:700,
-            background:urgBg, color:urgColor, border:'1px solid '+urgBorder,
-            fontFamily:'var(--font-mono)', letterSpacing:'-0.02em'}}>
-            {urgIcon} {urgLabel}
-          </span>
-          <span style={{fontSize:'0.78rem', color:'var(--c-gray-500)', fontWeight:500}}>
-            {remainText()}
-          </span>
-        </div>
-      )}
-
-      {/* 타임라인 바 */}
-      {open && exp && totalDays > 0 && (
-        <div style={{position:'relative', paddingTop:2}}>
-          {/* 배경 트랙 */}
-          <div style={{height:8, borderRadius:4, background:'var(--c-gray-100)', position:'relative', overflow:'hidden'}}>
-            {/* 진행 바 */}
-            <div style={{
-              position:'absolute', top:0, left:0, height:'100%', borderRadius:4,
-              width: Math.min(pct, 100) + '%',
-              background: getBarGradient(),
-              transition: 'width 0.6s ease-out',
-            }} />
-            {/* 오늘 마커 */}
-            {pct >= 0 && pct <= 100 && (
-              <div style={{
-                position:'absolute', top:-3, left: `calc(${Math.min(pct,100)}% - 7px)`,
-                width:14, height:14, borderRadius:'50%', background:'#fff',
-                border:'2.5px solid '+urgColor, zIndex:2,
-                boxShadow:'0 1px 4px rgba(0,0,0,0.15)',
-                transition:'left 0.6s ease-out',
-              }} />
-            )}
-          </div>
-          {/* 라벨 */}
-          <div style={{display:'flex', justifyContent:'space-between', marginTop:6}}>
-            <span style={{fontSize:'0.68rem', color:'var(--c-gray-400)', fontFamily:'var(--font-mono)'}}>
-              📅 {fmtDate(open)}
-            </span>
-            <span style={{fontSize:'0.68rem', color:urgency === 'expired' ? '#DC2626' : 'var(--c-gray-400)',
-              fontFamily:'var(--font-mono)', fontWeight:urgency === 'critical' || urgency === 'expired' ? 700 : 400}}>
-              🏁 {fmtDate(exp)}
-            </span>
-          </div>
-        </div>
-      )}
-
-      {/* 마감일만 있는 경우 (개설일 없음) */}
-      {!open && exp && (
-        <div style={{display:'flex', alignItems:'center', gap:6, fontSize:'0.74rem', color:'var(--c-gray-400)'}}>
-          <span>🏁 마감: <strong style={{fontFamily:'var(--font-mono)', color:'var(--c-gray-600)'}}>{fmtDate(exp)}</strong></span>
-        </div>
-      )}
-
-      {/* 개설일만 있는 경우 (마감일 없음) */}
-      {open && !exp && (
-        <div style={{display:'flex', alignItems:'center', gap:6, fontSize:'0.74rem', color:'var(--c-gray-400)'}}>
-          <span>📅 개설: <strong style={{fontFamily:'var(--font-mono)', color:'var(--c-gray-600)'}}>{fmtDate(open)}</strong></span>
-          <span>· 보유 {diffDays(open, today)}일째</span>
-        </div>
-      )}
-    </div>
-  );
-}
-
 // ─── 메인 앱 ────────────────────────────────────────
 function App() {
   const [step, setStep] = useState(1);
@@ -1579,8 +1453,6 @@ function App() {
   const [pointsList, setPointsList] = useState([]);
   const [selProgram, setSelProgram] = useState('');
   const [selPoints, setSelPoints] = useState('');
-  const [selOpenDate, setSelOpenDate] = useState('');
-  const [selExpDate, setSelExpDate] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sortMode, setSortMode] = useState('class');
@@ -1613,13 +1485,13 @@ function App() {
     if (!selProgram || !pts || pts <= 0) return;
     const existing = pointsList.find(p => p.program === selProgram);
     if (existing) {
-      setPointsList(pointsList.map(p => p.program === selProgram ? {...p, points:pts, openDate:selOpenDate||p.openDate, expDate:selExpDate||p.expDate} : p));
+      setPointsList(pointsList.map(p => p.program === selProgram ? {...p, points:pts} : p));
       showToast(`${selProgram} 포인트가 업데이트되었습니다`, 'warn');
     } else {
-      setPointsList([...pointsList, {program:selProgram, points:pts, openDate:selOpenDate, expDate:selExpDate}]);
+      setPointsList([...pointsList, {program:selProgram, points:pts}]);
       showToast(`${selProgram} 추가 완료`, 'success');
     }
-    setSelProgram(''); setSelPoints(''); setSelOpenDate(''); setSelExpDate('');
+    setSelProgram(''); setSelPoints('');
   }
 
   function analyze() {
@@ -1763,7 +1635,6 @@ function App() {
     setTripType('oneway');
     setLayovers([]); setLayoverSearch('');
     setPassengers(1); setPointsList([]); setSelProgram(''); setSelPoints('');
-    setSelOpenDate(''); setSelExpDate('');
     setResult(null); setSortMode('class');
     setBookedTickets([]);
   }
@@ -2077,29 +1948,6 @@ function App() {
                 aria-label="포인트 수량" />
               <button onClick={addPoints} className="btn btn-primary" style={{minWidth:70}}>추가</button>
             </div>
-            {/* 날짜 입력 (선택) */}
-            <div style={{display:'flex', gap:10, flexWrap:'wrap', marginTop:12}}>
-              <div style={{flex:1, minWidth:150}}>
-                <label style={{fontSize:'0.76rem', fontWeight:600, color:'var(--c-gray-400)',
-                  display:'block', marginBottom:4}}>
-                  📅 카드 개설일 <span style={{fontWeight:400}}>(선택)</span>
-                </label>
-                <input type="date" value={selOpenDate}
-                  onChange={e => setSelOpenDate(e.target.value)}
-                  className="input"
-                  style={{fontSize:'0.85rem', padding:'9px 12px'}} />
-              </div>
-              <div style={{flex:1, minWidth:150}}>
-                <label style={{fontSize:'0.76rem', fontWeight:600, color:'var(--c-gray-400)',
-                  display:'block', marginBottom:4}}>
-                  🏁 포인트 마감일 <span style={{fontWeight:400}}>(선택)</span>
-                </label>
-                <input type="date" value={selExpDate}
-                  onChange={e => setSelExpDate(e.target.value)}
-                  className="input"
-                  style={{fontSize:'0.85rem', padding:'9px 12px'}} />
-              </div>
-            </div>
           </div>
 
           {/* 추가된 포인트 목록 */}
@@ -2125,7 +1973,6 @@ function App() {
                       <button onClick={() => setPointsList(pointsList.filter(p => p.program !== item.program))}
                         className="btn btn-outline btn-sm">삭제</button>
                     </div>
-                    <PointsTimeline openDate={item.openDate} expDate={item.expDate} />
                   </div>
                 );
               })}
