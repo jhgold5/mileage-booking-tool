@@ -354,10 +354,6 @@ function applyGoogleSheetsData(data) {
     Object.keys(STOPOVERS).forEach(k => delete STOPOVERS[k]);
     Object.assign(STOPOVERS, data.stopovers);
   }
-  if (data.sweetSpots && data.sweetSpots.length > 0) {
-    SWEET_SPOTS.length = 0;
-    data.sweetSpots.forEach(s => SWEET_SPOTS.push(s));
-  }
   if (data.bookingFees && Object.keys(data.bookingFees).length > 0) {
     Object.keys(BOOKING_FEES).forEach(k => delete BOOKING_FEES[k]);
     Object.assign(BOOKING_FEES, data.bookingFees);
@@ -1008,28 +1004,6 @@ let STOPOVERS = {
 };
 
 // ═══════════════════════════════════════════════════════════
-// 🆕 v2.0 — 스윗스팟 추천
-// ═══════════════════════════════════════════════════════════
-let SWEET_SPOTS = [
-  {program:'BA',route:'서울→도쿄',cabin:'E',miles:15000,cpp:2.5,airlines:'JAL,CX',note:'Avios 단거리 최강'},
-  {program:'QF',route:'서울→도쿄',cabin:'E',miles:9000,cpp:3.5,airlines:'JAL',note:'콴타스 단거리 최저'},
-  {program:'AS',route:'서울→도쿄',cabin:'B',miles:45000,cpp:5.0,airlines:'JAL,CX',note:'알래스카→JAL 비즈'},
-  {program:'CX',route:'서울→동남아',cabin:'B',miles:40000,cpp:5.5,airlines:'CX',note:'아시아마일즈 비즈 꿀'},
-  {program:'AC',route:'서울→동남아',cabin:'B',miles:35000,cpp:6.0,airlines:'SQ,TK,OZ',note:'에어로플랜 파트너 고정'},
-  {program:'AC',route:'서울→유럽',cabin:'B',miles:55000,cpp:8.5,airlines:'LH,SQ,TK,OZ,NH',note:'에어로플랜 유럽 비즈 55k 최강'},
-  {program:'TK',route:'서울→유럽',cabin:'B',miles:75000,cpp:5.5,airlines:'TK',note:'TK 비즈 + 이스탄불 스톱오버'},
-  {program:'QR',route:'서울→유럽',cabin:'B',miles:95000,cpp:7.0,airlines:'QR',note:'Qsuite + 도하 스톱오버'},
-  {program:'AC',route:'서울→북미',cabin:'B',miles:55000,cpp:9.0,airlines:'NH,OZ,UA,AC',note:'에어로플랜 A-G 55k 최강'},
-  {program:'VS',route:'서울→미국(ANA)',cabin:'B',miles:55000,cpp:8.0,airlines:'NH',note:'버진→ANA 비즈 스타거드'},
-  {program:'AS',route:'서울→미국',cabin:'B',miles:60000,cpp:7.5,airlines:'CX,JL,AA',note:'알래스카 원월드 비즈 60k'},
-  {program:'EK',route:'서울→두바이',cabin:'F',miles:75000,cpp:15.0,airlines:'EK',note:'에미레이트 퍼스트 75k 극강'},
-  {program:'QR',route:'서울→도하',cabin:'B',miles:50000,cpp:9.0,airlines:'QR',note:'Qsuite 50k'},
-  {program:'IB',route:'유럽→중남미',cabin:'B',miles:34000,cpp:10.0,airlines:'IB',note:'이베리아 유럽-남미 34k 극강'},
-  {program:'AC',route:'서울→하와이',cabin:'E',miles:15000,cpp:4.5,airlines:'NH,OZ',note:'에어로플랜 하와이 15k!'},
-  {program:'BA',route:'미국 내 단거리',cabin:'E',miles:9000,cpp:2.5,airlines:'AA',note:'Avios 미국내 9k'},
-];
-
-// ═══════════════════════════════════════════════════════════
 // 🆕 v2.0 — 예약수수료
 // ═══════════════════════════════════════════════════════════
 let BOOKING_FEES = {
@@ -1234,67 +1208,6 @@ function FeeInfo({code}) {
     padding:'1px 6px', borderRadius:4,
     background:'var(--c-gray-100)', border:'1px solid var(--c-gray-200)',
   }}, item)));
-}
-
-// ─── v2.0 스윗스팟 패널 ─────────────────────────────
-function SweetSpotPanel({zoneKey}) {
-  if (!zoneKey) return null;
-  const spots = SWEET_SPOTS.filter(s => {
-    const chart = CHARTS[s.program];
-    return chart && chart.r && chart.r[zoneKey];
-  });
-  if (spots.length === 0) return null;
-  const sorted = [...spots].sort((a, b) => (b.cpp||0) - (a.cpp||0));
-  const top = sorted.slice(0, 4);
-
-  return (
-    <div className="fade-up" style={{
-      background:'linear-gradient(135deg, #FFF7ED, #FFFBEB)',
-      border:'1.5px solid #FCD579', borderRadius:'var(--radius-lg)',
-      padding:'18px 22px', marginBottom:20,
-    }}>
-      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
-        <span style={{fontSize:'1.05rem'}}>🏆</span>
-        <span style={{fontWeight:700, fontSize:'0.88rem', color:'#92400E'}}>
-          이 구간 스윗스팟 TOP {top.length}
-        </span>
-      </div>
-      {top.map((s, i) => {
-        const prog = PROGRAM_MAP[s.program];
-        return (
-          <div key={i} style={{
-            display:'flex', alignItems:'center', justifyContent:'space-between',
-            padding:'10px 14px', background:'#fff', borderRadius:'var(--radius-md)',
-            border:'1px solid #FDE68A', marginBottom:5,
-          }}>
-            <div style={{display:'flex', alignItems:'center', gap:10}}>
-              <span style={{
-                display:'inline-flex', alignItems:'center', justifyContent:'center',
-                width:28, height:28, borderRadius:6,
-                background: prog ? prog.color : '#666', color:'#fff',
-                fontWeight:700, fontSize:'0.58rem', fontFamily:'var(--font-mono)',
-              }}>{s.program}</span>
-              <div>
-                <div style={{fontSize:'0.82rem', fontWeight:600}}>{s.route}</div>
-                <div style={{fontSize:'0.7rem', color:'var(--c-gray-500)'}}>
-                  {s.cabin==='E'?'이코노미':s.cabin==='B'?'비즈니스':'퍼스트'}
-                  {' · '}{s.note}
-                </div>
-              </div>
-            </div>
-            <div style={{textAlign:'right'}}>
-              <div style={{fontWeight:700, fontSize:'0.86rem', fontFamily:'var(--font-mono)'}}>
-                {typeof s.miles === 'number' ? formatNumber(s.miles) : s.miles}
-              </div>
-              <div style={{fontSize:'0.66rem', color:'var(--c-success)', fontWeight:600}}>
-                ~{s.cpp}¢/pt
-              </div>
-            </div>
-          </div>
-        );
-      })}
-    </div>
-  );
 }
 
 // ─── ResultCard 컴포넌트 ────────────────────────────
@@ -2237,9 +2150,6 @@ function App() {
               </div>
             </div>
           )}
-
-          {/* v2.0: 스윗스팟 추천 */}
-          <SweetSpotPanel zoneKey={result.zKey} />
 
           {/* 결과 카드 */}
           {sortedRows.map((r, idx) => (
