@@ -344,6 +344,28 @@ function applyGoogleSheetsData(data) {
     Object.keys(AIRPORT_MAP).forEach(k => delete AIRPORT_MAP[k]);
     AIRPORTS.forEach(a => { AIRPORT_MAP[a.code] = a; });
   }
+  
+  // ── v2.0 신규 데이터 ──
+  if (data.alliances && Object.keys(data.alliances).length > 0) {
+    Object.keys(ALLIANCES).forEach(k => delete ALLIANCES[k]);
+    Object.assign(ALLIANCES, data.alliances);
+  }
+  if (data.stopovers && Object.keys(data.stopovers).length > 0) {
+    Object.keys(STOPOVERS).forEach(k => delete STOPOVERS[k]);
+    Object.assign(STOPOVERS, data.stopovers);
+  }
+  if (data.sweetSpots && data.sweetSpots.length > 0) {
+    SWEET_SPOTS.length = 0;
+    data.sweetSpots.forEach(s => SWEET_SPOTS.push(s));
+  }
+  if (data.bookingFees && Object.keys(data.bookingFees).length > 0) {
+    Object.keys(BOOKING_FEES).forEach(k => delete BOOKING_FEES[k]);
+    Object.assign(BOOKING_FEES, data.bookingFees);
+  }
+  if (data.bonusEvents && data.bonusEvents.length > 0) {
+    BONUS_EVENTS.length = 0;
+    data.bonusEvents.forEach(e => BONUS_EVENTS.push(e));
+  }
 }
 // ════════════════════════════════════════════════════════
 
@@ -601,6 +623,11 @@ let PROGRAMS = [
   {name:'Citi 땡큐 포인트',code:'Citi',color:'#056dae',cat:'카드'},
   {name:'캐피털원 마일즈',code:'CapOne',color:'#004879',cat:'카드'},
   {name:'Bilt 리워드',code:'Bilt',color:'#1a1a1a',cat:'카드'},
+  // v2.0 추가
+  {name:'Wells Fargo Autograph',code:'WF',color:'#d71e28',cat:'카드'},
+  {name:'메리어트 본보이',code:'Marriott',color:'#8c1d40',cat:'호텔'},
+  {name:'힐튼 아너스',code:'Hilton',color:'#104c97',cat:'호텔'},
+  {name:'월드오브하얏트',code:'Hyatt',color:'#c4985a',cat:'호텔'},
 ];
 
 // O(1) 프로그램 인덱스
@@ -750,6 +777,7 @@ let CARD_TRANSFERS = {
       {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
       {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
       {code:'IB',  label:'이베리아 Avios', ratio:1},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:1},
     ]},
   Chase: {name:'체이스 얼티밋 리워드', color:'#117aca',
     to:[
@@ -761,6 +789,8 @@ let CARD_TRANSFERS = {
       {code:'QR',  label:'카타르 프리빌리지클럽', ratio:1},
       {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
       {code:'IB',  label:'이베리아 Avios', ratio:1},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:1},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:1},
     ]},
   Citi: {name:'Citi 땡큐 포인트', color:'#056dae',
     to:[
@@ -775,6 +805,8 @@ let CARD_TRANSFERS = {
       {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
       {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
       {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
     ]},
   CapOne: {name:'캐피털원 마일즈', color:'#004879',
     to:[
@@ -790,6 +822,8 @@ let CARD_TRANSFERS = {
       {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
       {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
       {code:'JL',  label:'JAL 마일리지뱅크', ratio:0.75},
+      {code:'NH',  label:'ANA 마일리지클럽', ratio:1},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:1},
     ]},
   Bilt: {name:'Bilt 리워드', color:'#1a1a1a',
     to:[
@@ -805,6 +839,53 @@ let CARD_TRANSFERS = {
       {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:1},
       {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
       {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
+      {code:'AA',  label:'아메리칸 AAdvantage', ratio:1},
+      {code:'IB',  label:'이베리아 Avios', ratio:1},
+    ]},
+  // v2.0 추가
+  WF: {name:'Wells Fargo Autograph', color:'#d71e28',
+    to:[
+      {code:'BA',  label:'British Airways Avios', ratio:1},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:1},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:1},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:1},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:1},
+    ]},
+  Marriott: {name:'메리어트 본보이', color:'#8c1d40',
+    to:[
+      {code:'NH',  label:'ANA 마일리지클럽', ratio:0.33},
+      {code:'BA',  label:'British Airways Avios', ratio:0.33},
+      {code:'AF',  label:'에어프랑스-KLM 플라잉블루', ratio:0.33},
+      {code:'DL',  label:'델타 스카이마일스', ratio:0.33},
+      {code:'UA',  label:'유나이티드 마일리지플러스', ratio:0.33},
+      {code:'AA',  label:'아메리칸 AAdvantage', ratio:0.33},
+      {code:'AC',  label:'에어캐나다 에어로플랜', ratio:0.33},
+      {code:'AS',  label:'알래스카 아트모스 리워드', ratio:0.33},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:0.33},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.33},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:0.33},
+      {code:'KE',  label:'대한항공 스카이패스', ratio:0.33},
+      {code:'SQ',  label:'싱가포르항공 크리스플라이어', ratio:0.33},
+      {code:'TK',  label:'터키항공 마일즈앤스마일즈', ratio:0.33},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:0.33},
+    ]},
+  Hilton: {name:'힐튼 아너스', color:'#104c97',
+    to:[
+      {code:'BA',  label:'British Airways Avios', ratio:0.4},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:0.4},
+      {code:'AA',  label:'아메리칸 AAdvantage', ratio:0.4},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.4},
+      {code:'JL',  label:'JAL 마일리지뱅크', ratio:0.4},
+      {code:'AV',  label:'아비안카 라이프마일즈', ratio:0.4},
+    ]},
+  Hyatt: {name:'월드오브하얏트', color:'#c4985a',
+    to:[
+      {code:'AA',  label:'아메리칸 AAdvantage', ratio:0.4},
+      {code:'BA',  label:'British Airways Avios', ratio:0.4},
+      {code:'CX',  label:'캐세이 아시아마일즈', ratio:0.4},
+      {code:'EK',  label:'에미레이트 스카이워즈', ratio:0.4},
+      {code:'KE',  label:'대한항공 스카이패스', ratio:0.4},
+      {code:'VS',  label:'버진 애틀랜틱 플라잉클럽', ratio:0.4},
     ]},
 };
 
@@ -835,6 +916,8 @@ function getRatioLabel(ratio) {
   if (ratio === 1) return '1:1';
   if (ratio === 0.8) return '1000→800';
   if (ratio === 0.75) return '1000→750';
+  if (ratio === 0.4) return '2.5:1';
+  if (ratio === 0.33 || Math.abs(ratio - 0.33) < 0.01) return '3:1';
   return `${Math.round(ratio*100)}%`;
 }
 function formatNumber(n) {
@@ -866,6 +949,120 @@ let AIRLINE_LINKS = {
   QF:'https://www.qantas.com', TK:'https://www.turkishairlines.com',
   EY:'https://www.etihad.com', IB:'https://www.iberia.com',
 };
+
+// ═══════════════════════════════════════════════════════════
+// 🆕 v2.0 — 얼라이언스/파트너 정보
+// ═══════════════════════════════════════════════════════════
+let ALLIANCES = {
+  KE:{alliance:'스카이팀',bookable:['KE','OZ','AF','DL','CZ','MU','GA','VN','CI','SU','AM','AR','KQ','ME','SV','RO','OK','UX','KL'],note:'스카이팀 소속'},
+  OZ:{alliance:'스타얼라이언스',bookable:['OZ','NH','UA','AC','LH','SQ','TK','AV','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN','ZH','SA','A3'],note:''},
+  AA:{alliance:'원월드',bookable:['AA','BA','QR','CX','QF','JL','AS','IB','MH','S7','FJ','AT','RJ','UL'],note:''},
+  UA:{alliance:'스타얼라이언스',bookable:['UA','NH','AC','LH','SQ','TK','AV','OZ','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN','ZH','SA','A3'],note:''},
+  DL:{alliance:'스카이팀',bookable:['DL','AF','KL','KE','CZ','MU','GA','VN','CI','AM','AR','VS','LA'],note:'버진 애틀랜틱 특별 파트너'},
+  AS:{alliance:'원월드',bookable:['AS','AA','BA','CX','QR','QF','JL','IB','FJ','EK','SQ','KE'],note:'원월드+광범위 파트너'},
+  AC:{alliance:'스타얼라이언스',bookable:['AC','UA','NH','LH','SQ','TK','AV','OZ','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN','ZH','SA','A3'],note:'걸프 항공사도 파트너'},
+  AV:{alliance:'스타얼라이언스',bookable:['AV','UA','AC','NH','LH','SQ','TK','OZ','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN'],note:'2025.2 개정'},
+  NH:{alliance:'스타얼라이언스',bookable:['NH','UA','AC','LH','SQ','TK','AV','OZ','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN'],note:''},
+  JL:{alliance:'원월드',bookable:['JL','AA','BA','CX','QR','QF','IB','MH','S7','FJ','AT','RJ','UL','AS'],note:''},
+  SQ:{alliance:'스타얼라이언스',bookable:['SQ','UA','AC','NH','LH','TK','AV','OZ','ET','BR','CA','AI'],note:''},
+  CX:{alliance:'원월드',bookable:['CX','AA','BA','QR','QF','JL','IB','MH','S7','FJ','AT','RJ','UL','AS'],note:''},
+  EK:{alliance:'독립',bookable:['EK','QF','JL','KE'],note:'선별적 파트너만'},
+  EY:{alliance:'독립',bookable:['EY','AA','AZ','JL','KE','SQ','VS'],note:'파트너십 네트워크'},
+  QR:{alliance:'원월드',bookable:['QR','AA','BA','CX','QF','JL','IB','MH','S7','FJ','AT','RJ','UL','AS'],note:''},
+  BA:{alliance:'원월드',bookable:['BA','AA','QR','CX','QF','JL','IB','MH','S7','FJ','AT','RJ','UL','AS'],note:'IB와 Avios 공유'},
+  IB:{alliance:'원월드',bookable:['IB','BA','AA','QR','CX','QF','JL','MH','S7','FJ','AS'],note:'유럽/중남미 강점'},
+  AF:{alliance:'스카이팀',bookable:['AF','KL','DL','KE','CZ','MU','GA','VN','CI','SU','AM','AR','KQ','ME','SV','RO','OK','UX'],note:'AF-KLM 공동'},
+  LH:{alliance:'스타얼라이언스',bookable:['LH','LX','OS','SN','UA','AC','NH','SQ','TK','AV','OZ','ET','BR','CA','AI','SK','TP','LO','MS'],note:'LH그룹'},
+  TK:{alliance:'스타얼라이언스',bookable:['TK','UA','AC','NH','LH','SQ','AV','OZ','ET','BR','CA','AI','LO','MS','SK','TP','OS','LX','SN'],note:''},
+  VS:{alliance:'독립',bookable:['VS','DL','AF','KL','NH','SQ','AV'],note:'델타+ANA+플라잉블루'},
+  QF:{alliance:'원월드',bookable:['QF','AA','BA','CX','QR','JL','IB','MH','S7','FJ','EK','AS'],note:'에미레이트 파트너십'},
+};
+const ALLIANCE_COLORS = {'스카이팀':'#0032A0','스타얼라이언스':'#003876','원월드':'#AB1E2D','독립':'#6B7280'};
+
+// ═══════════════════════════════════════════════════════════
+// 🆕 v2.0 — 스톱오버/경유 정책
+// ═══════════════════════════════════════════════════════════
+let STOPOVERS = {
+  KE:{allowed:true,max:1,fee:'$100',openJaw:true,details:'왕복 시 1회 스톱오버'},
+  OZ:{allowed:true,max:1,fee:'무료',openJaw:true,details:'왕복 시 1회 무료'},
+  AA:{allowed:false,max:0,fee:'N/A',openJaw:true,details:'오픈조만 허용'},
+  UA:{allowed:false,max:0,fee:'N/A',openJaw:false,details:'Excursionist Perk 별도'},
+  DL:{allowed:false,max:0,fee:'N/A',openJaw:false,details:'편도 단위 발권만'},
+  AS:{allowed:true,max:1,fee:'무료',openJaw:true,details:'1회 무료 + 오픈조'},
+  AC:{allowed:true,max:2,fee:'무료',openJaw:true,details:'미니 RTW: 2회 스톱오버 + 오픈조 (최강)'},
+  AV:{allowed:true,max:1,fee:'무료',openJaw:true,details:'편도 1회 무료'},
+  NH:{allowed:false,max:0,fee:'N/A',openJaw:false,details:'불가'},
+  JL:{allowed:true,max:1,fee:'무료',openJaw:true,details:'국제선 왕복 1회 무료'},
+  SQ:{allowed:false,max:0,fee:'N/A',openJaw:false,details:'편도만 가능'},
+  CX:{allowed:true,max:1,fee:'무료',openJaw:true,details:'홍콩 경유 추천'},
+  EK:{allowed:true,max:1,fee:'무료',openJaw:true,details:'두바이 1회 무료'},
+  QR:{allowed:true,max:2,fee:'무료',openJaw:true,details:'도하 포함 2회 (Qsuite 인기)'},
+  BA:{allowed:false,max:0,fee:'N/A',openJaw:true,details:'구간당 Avios, 멀티시티 가능'},
+  IB:{allowed:false,max:0,fee:'N/A',openJaw:true,details:'BA와 동일'},
+  AF:{allowed:true,max:1,fee:'무료',openJaw:true,details:'파리/암스테르담 경유'},
+  LH:{allowed:true,max:1,fee:'무료',openJaw:true,details:'프랑크푸르트/뮌헨 경유'},
+  TK:{allowed:true,max:1,fee:'무료',openJaw:true,details:'이스탄불 무료 스톱오버'},
+  EY:{allowed:true,max:1,fee:'무료',openJaw:true,details:'아부다비 무료'},
+  VS:{allowed:false,max:0,fee:'N/A',openJaw:false,details:'편도 단위, 불가'},
+  QF:{allowed:true,max:1,fee:'무료',openJaw:true,details:'왕복 시 1회 무료'},
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🆕 v2.0 — 스윗스팟 추천
+// ═══════════════════════════════════════════════════════════
+let SWEET_SPOTS = [
+  {program:'BA',route:'서울→도쿄',cabin:'E',miles:15000,cpp:2.5,airlines:'JAL,CX',note:'Avios 단거리 최강'},
+  {program:'QF',route:'서울→도쿄',cabin:'E',miles:9000,cpp:3.5,airlines:'JAL',note:'콴타스 단거리 최저'},
+  {program:'AS',route:'서울→도쿄',cabin:'B',miles:45000,cpp:5.0,airlines:'JAL,CX',note:'알래스카→JAL 비즈'},
+  {program:'CX',route:'서울→동남아',cabin:'B',miles:40000,cpp:5.5,airlines:'CX',note:'아시아마일즈 비즈 꿀'},
+  {program:'AC',route:'서울→동남아',cabin:'B',miles:35000,cpp:6.0,airlines:'SQ,TK,OZ',note:'에어로플랜 파트너 고정'},
+  {program:'AC',route:'서울→유럽',cabin:'B',miles:55000,cpp:8.5,airlines:'LH,SQ,TK,OZ,NH',note:'에어로플랜 유럽 비즈 55k 최강'},
+  {program:'TK',route:'서울→유럽',cabin:'B',miles:75000,cpp:5.5,airlines:'TK',note:'TK 비즈 + 이스탄불 스톱오버'},
+  {program:'QR',route:'서울→유럽',cabin:'B',miles:95000,cpp:7.0,airlines:'QR',note:'Qsuite + 도하 스톱오버'},
+  {program:'AC',route:'서울→북미',cabin:'B',miles:55000,cpp:9.0,airlines:'NH,OZ,UA,AC',note:'에어로플랜 A-G 55k 최강'},
+  {program:'VS',route:'서울→미국(ANA)',cabin:'B',miles:55000,cpp:8.0,airlines:'NH',note:'버진→ANA 비즈 스타거드'},
+  {program:'AS',route:'서울→미국',cabin:'B',miles:60000,cpp:7.5,airlines:'CX,JL,AA',note:'알래스카 원월드 비즈 60k'},
+  {program:'EK',route:'서울→두바이',cabin:'F',miles:75000,cpp:15.0,airlines:'EK',note:'에미레이트 퍼스트 75k 극강'},
+  {program:'QR',route:'서울→도하',cabin:'B',miles:50000,cpp:9.0,airlines:'QR',note:'Qsuite 50k'},
+  {program:'IB',route:'유럽→중남미',cabin:'B',miles:34000,cpp:10.0,airlines:'IB',note:'이베리아 유럽-남미 34k 극강'},
+  {program:'AC',route:'서울→하와이',cabin:'E',miles:15000,cpp:4.5,airlines:'NH,OZ',note:'에어로플랜 하와이 15k!'},
+  {program:'BA',route:'미국 내 단거리',cabin:'E',miles:9000,cpp:2.5,airlines:'AA',note:'Avios 미국내 9k'},
+];
+
+// ═══════════════════════════════════════════════════════════
+// 🆕 v2.0 — 예약수수료
+// ═══════════════════════════════════════════════════════════
+let BOOKING_FEES = {
+  KE:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'$30/3,000마일',change:'$30/3,000마일'},
+  OZ:{online:'무료',phone:'₩15,000',closeIn:'무료',closeInDays:0,cancel:'₩30,000',change:'₩30,000'},
+  AA:{online:'무료',phone:'$25~40',closeIn:'$75',closeInDays:21,cancel:'무료(웹)',change:'무료(웹)'},
+  UA:{online:'무료',phone:'$25',closeIn:'$75',closeInDays:21,cancel:'무료(웹)',change:'무료(웹)'},
+  DL:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'무료',change:'무료'},
+  AS:{online:'무료',phone:'$15',closeIn:'$50',closeInDays:21,cancel:'$125',change:'$125'},
+  AC:{online:'무료',phone:'$30 CAD',closeIn:'무료',closeInDays:0,cancel:'유연',change:'무료'},
+  AV:{online:'무료',phone:'$30',closeIn:'무료',closeInDays:0,cancel:'$50',change:'$50'},
+  NH:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'3,000마일',change:'3,000마일'},
+  JL:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'3,100마일',change:'3,100마일'},
+  SQ:{online:'무료',phone:'$25 SGD',closeIn:'무료',closeInDays:0,cancel:'$25 SGD',change:'$25 SGD'},
+  CX:{online:'무료',phone:'HK$200',closeIn:'무료',closeInDays:0,cancel:'무료',change:'무료'},
+  EK:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'$50~75',change:'$50~75'},
+  QR:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'$25~50',change:'$25~50'},
+  BA:{online:'무료',phone:'£25',closeIn:'무료',closeInDays:0,cancel:'Avios환불',change:'무료'},
+  IB:{online:'무료',phone:'€20',closeIn:'무료',closeInDays:0,cancel:'Avios환불',change:'무료'},
+  AF:{online:'무료',phone:'€25',closeIn:'무료',closeInDays:0,cancel:'프로모불가',change:'€25'},
+  LH:{online:'무료',phone:'€25',closeIn:'무료',closeInDays:0,cancel:'€50',change:'€50'},
+  TK:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'$25',change:'$25'},
+  EY:{online:'무료',phone:'무료',closeIn:'무료',closeInDays:0,cancel:'$50',change:'$50'},
+  VS:{online:'무료',phone:'£20',closeIn:'무료',closeInDays:0,cancel:'무료(24h)',change:'무료'},
+  QF:{online:'무료',phone:'AUD $35',closeIn:'무료',closeInDays:0,cancel:'AUD $50',change:'AUD $50'},
+};
+
+// ═══════════════════════════════════════════════════════════
+// 🆕 v2.0 — 보너스이벤트 (주기적 업데이트 필요)
+// ═══════════════════════════════════════════════════════════
+let BONUS_EVENTS = [
+  {card:'Marriott',airline:'NH',pct:25,start:'2025-01-01',end:'2025-12-31',note:'60k→25k (5k보너스 포함, 상시)'},
+];
 
 const POPULAR_AIRPORTS = [
   'ICN','GMP','PUS','CJU',
@@ -996,6 +1193,110 @@ function AirportInput({label, placeholder, value, search, setSearch, onSelect, o
   );
 }
 
+// ─── v2.0 얼라이언스 배지 ─────────────────────────────
+function AllianceBadge({code}) {
+  const a = ALLIANCES[code];
+  if (!a) return null;
+  const color = ALLIANCE_COLORS[a.alliance] || '#6B7280';
+  return React.createElement('span', {style:{
+    display:'inline-block', padding:'2px 8px', borderRadius:12,
+    fontSize:'0.66rem', fontWeight:600, color:'#fff',
+    background:color, marginLeft:6, verticalAlign:'middle',
+  }}, a.alliance);
+}
+
+// ─── v2.0 스톱오버 배지 ──────────────────────────────
+function StopoverBadge({code}) {
+  const s = STOPOVERS[code];
+  if (!s || !s.allowed) return null;
+  return React.createElement('span', {style:{
+    display:'inline-flex', alignItems:'center', gap:3,
+    padding:'2px 7px', borderRadius:12,
+    fontSize:'0.64rem', fontWeight:600,
+    background:'#E6F8ED', color:'#0B8A3E', border:'1px solid #8AD4A6',
+    marginLeft:4,
+  }}, '✈️ 스톱오버 '+s.max+'회 '+s.fee + (s.openJaw ? ' +오픈조' : ''));
+}
+
+// ─── v2.0 수수료 정보 표시 ───────────────────────────
+function FeeInfo({code}) {
+  const fee = BOOKING_FEES[code];
+  if (!fee) return null;
+  const items = [];
+  if (fee.closeInDays > 0) items.push(fee.closeInDays+'일내 발권: '+fee.closeIn);
+  if (fee.cancel && fee.cancel !== 'N/A' && fee.cancel !== '무료') items.push('취소: '+fee.cancel);
+  if (fee.phone && fee.phone !== '무료') items.push('전화: '+fee.phone);
+  if (items.length === 0) return null;
+  return React.createElement('div', {style:{
+    fontSize:'0.7rem', color:'var(--c-gray-500)',
+    marginTop:4, display:'flex', gap:6, flexWrap:'wrap',
+  }}, items.map((item, i) => React.createElement('span', {key:i, style:{
+    padding:'1px 6px', borderRadius:4,
+    background:'var(--c-gray-100)', border:'1px solid var(--c-gray-200)',
+  }}, item)));
+}
+
+// ─── v2.0 스윗스팟 패널 ─────────────────────────────
+function SweetSpotPanel({zoneKey}) {
+  if (!zoneKey) return null;
+  const spots = SWEET_SPOTS.filter(s => {
+    const chart = CHARTS[s.program];
+    return chart && chart.r && chart.r[zoneKey];
+  });
+  if (spots.length === 0) return null;
+  const sorted = [...spots].sort((a, b) => (b.cpp||0) - (a.cpp||0));
+  const top = sorted.slice(0, 4);
+
+  return (
+    <div className="fade-up" style={{
+      background:'linear-gradient(135deg, #FFF7ED, #FFFBEB)',
+      border:'1.5px solid #FCD579', borderRadius:'var(--radius-lg)',
+      padding:'18px 22px', marginBottom:20,
+    }}>
+      <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:12}}>
+        <span style={{fontSize:'1.05rem'}}>🏆</span>
+        <span style={{fontWeight:700, fontSize:'0.88rem', color:'#92400E'}}>
+          이 구간 스윗스팟 TOP {top.length}
+        </span>
+      </div>
+      {top.map((s, i) => {
+        const prog = PROGRAM_MAP[s.program];
+        return (
+          <div key={i} style={{
+            display:'flex', alignItems:'center', justifyContent:'space-between',
+            padding:'10px 14px', background:'#fff', borderRadius:'var(--radius-md)',
+            border:'1px solid #FDE68A', marginBottom:5,
+          }}>
+            <div style={{display:'flex', alignItems:'center', gap:10}}>
+              <span style={{
+                display:'inline-flex', alignItems:'center', justifyContent:'center',
+                width:28, height:28, borderRadius:6,
+                background: prog ? prog.color : '#666', color:'#fff',
+                fontWeight:700, fontSize:'0.58rem', fontFamily:'var(--font-mono)',
+              }}>{s.program}</span>
+              <div>
+                <div style={{fontSize:'0.82rem', fontWeight:600}}>{s.route}</div>
+                <div style={{fontSize:'0.7rem', color:'var(--c-gray-500)'}}>
+                  {s.cabin==='E'?'이코노미':s.cabin==='B'?'비즈니스':'퍼스트'}
+                  {' · '}{s.note}
+                </div>
+              </div>
+            </div>
+            <div style={{textAlign:'right'}}>
+              <div style={{fontWeight:700, fontSize:'0.86rem', fontFamily:'var(--font-mono)'}}>
+                {typeof s.miles === 'number' ? formatNumber(s.miles) : s.miles}
+              </div>
+              <div style={{fontSize:'0.66rem', color:'var(--c-success)', fontWeight:600}}>
+                ~{s.cpp}¢/pt
+              </div>
+            </div>
+          </div>
+        );
+      })}
+    </div>
+  );
+}
+
 // ─── ResultCard 컴포넌트 ────────────────────────────
 function ResultCard({r, idx, result, onBook}) {
   const hasAny = r.cabins.some(c => c.canAfford === true);
@@ -1028,10 +1329,14 @@ function ResultCard({r, idx, result, onBook}) {
                 <span style={{color:'var(--c-gray-400)', marginLeft:6}}>
                   ({getRatioLabel(r.transferRatio)})
                 </span>
+                <AllianceBadge code={r.targetCode} />
               </div>
             )}
             {!r.isCard && r.note && (
-              <div style={{fontSize:'0.78rem', color:'var(--c-gray-400)', marginTop:2}}>{r.note}</div>
+              <div style={{fontSize:'0.78rem', color:'var(--c-gray-400)', marginTop:2}}>
+                {r.note}
+                <AllianceBadge code={r.targetCode} />
+              </div>
             )}
           </div>
         </div>
@@ -1120,7 +1425,141 @@ function ResultCard({r, idx, result, onBook}) {
         </div>
       )}
 
+      {/* v2.0: 스톱오버 + 수수료 */}
+      {r.targetCode && (STOPOVERS[r.targetCode]?.allowed || BOOKING_FEES[r.targetCode]) && (
+        <div style={{marginTop:8, display:'flex', flexWrap:'wrap', gap:4, alignItems:'center'}}>
+          <StopoverBadge code={r.targetCode} />
+          <FeeInfo code={r.targetCode} />
+        </div>
+      )}
 
+
+    </div>
+  );
+}
+
+// ─── PointsTimeline 시각화 컴포넌트 ─────────────────
+function PointsTimeline({openDate, expDate}) {
+  if (!openDate && !expDate) return null;
+
+  const today = new Date();
+  today.setHours(0,0,0,0);
+  const open = openDate ? new Date(openDate + 'T00:00:00') : null;
+  const exp = expDate ? new Date(expDate + 'T00:00:00') : null;
+
+  // 날짜 차이 (일)
+  function diffDays(a, b) { return Math.round((b - a) / (1000*60*60*24)); }
+  function fmtDate(d) { return d.toLocaleDateString('ko-KR', {year:'numeric', month:'short', day:'numeric'}); }
+
+  // 마감일만 있는 경우
+  const daysLeft = exp ? diffDays(today, exp) : null;
+  const totalDays = (open && exp) ? diffDays(open, exp) : null;
+  const elapsed = (open && exp) ? diffDays(open, today) : null;
+  const pct = (totalDays && totalDays > 0) ? Math.max(0, Math.min(100, (elapsed / totalDays) * 100)) : null;
+
+  // 상태 결정
+  let urgency, urgLabel, urgColor, urgBg, urgBorder, urgIcon;
+  if (daysLeft !== null) {
+    if (daysLeft < 0) {
+      urgency = 'expired'; urgLabel = '만료됨'; urgColor = '#991B1B'; urgBg = '#FEF2F2'; urgBorder = '#FECACA'; urgIcon = '💀';
+    } else if (daysLeft <= 7) {
+      urgency = 'critical'; urgLabel = 'D-'+daysLeft; urgColor = '#DC2626'; urgBg = '#FEF2F2'; urgBorder = '#FCA5A5'; urgIcon = '🔥';
+    } else if (daysLeft <= 30) {
+      urgency = 'warning'; urgLabel = 'D-'+daysLeft; urgColor = '#D97706'; urgBg = '#FFFBEB'; urgBorder = '#FCD34D'; urgIcon = '⚠️';
+    } else if (daysLeft <= 90) {
+      urgency = 'caution'; urgLabel = 'D-'+daysLeft; urgColor = '#2563EB'; urgBg = '#EFF6FF'; urgBorder = '#93C5FD'; urgIcon = '📅';
+    } else {
+      urgency = 'safe'; urgLabel = 'D-'+daysLeft; urgColor = '#059669'; urgBg = '#ECFDF5'; urgBorder = '#6EE7B7'; urgIcon = '✅';
+    }
+  }
+
+  // 프로그레스 바 색상
+  function getBarGradient() {
+    if (pct === null) return 'var(--c-gray-200)';
+    if (pct >= 90) return 'linear-gradient(90deg, #059669 0%, #DC2626 100%)';
+    if (pct >= 70) return 'linear-gradient(90deg, #059669 0%, #D97706 100%)';
+    return 'linear-gradient(90deg, #059669 0%, #2563EB 100%)';
+  }
+
+  // 남은 기간 텍스트
+  function remainText() {
+    if (daysLeft === null) return '';
+    if (daysLeft < 0) return `${Math.abs(daysLeft)}일 전에 만료됨`;
+    if (daysLeft === 0) return '오늘 만료!';
+    const months = Math.floor(daysLeft / 30);
+    const days = daysLeft % 30;
+    if (months > 0 && days > 0) return `${months}개월 ${days}일 남음`;
+    if (months > 0) return `${months}개월 남음`;
+    return `${daysLeft}일 남음`;
+  }
+
+  return (
+    <div style={{marginTop:10}}>
+      {/* D-day 배지 + 텍스트 */}
+      {daysLeft !== null && (
+        <div style={{display:'flex', alignItems:'center', gap:8, marginBottom:8}}>
+          <span style={{display:'inline-flex', alignItems:'center', gap:4,
+            padding:'3px 10px', borderRadius:20, fontSize:'0.74rem', fontWeight:700,
+            background:urgBg, color:urgColor, border:'1px solid '+urgBorder,
+            fontFamily:'var(--font-mono)', letterSpacing:'-0.02em'}}>
+            {urgIcon} {urgLabel}
+          </span>
+          <span style={{fontSize:'0.78rem', color:'var(--c-gray-500)', fontWeight:500}}>
+            {remainText()}
+          </span>
+        </div>
+      )}
+
+      {/* 타임라인 바 */}
+      {open && exp && totalDays > 0 && (
+        <div style={{position:'relative', paddingTop:2}}>
+          {/* 배경 트랙 */}
+          <div style={{height:8, borderRadius:4, background:'var(--c-gray-100)', position:'relative', overflow:'hidden'}}>
+            {/* 진행 바 */}
+            <div style={{
+              position:'absolute', top:0, left:0, height:'100%', borderRadius:4,
+              width: Math.min(pct, 100) + '%',
+              background: getBarGradient(),
+              transition: 'width 0.6s ease-out',
+            }} />
+            {/* 오늘 마커 */}
+            {pct >= 0 && pct <= 100 && (
+              <div style={{
+                position:'absolute', top:-3, left: `calc(${Math.min(pct,100)}% - 7px)`,
+                width:14, height:14, borderRadius:'50%', background:'#fff',
+                border:'2.5px solid '+urgColor, zIndex:2,
+                boxShadow:'0 1px 4px rgba(0,0,0,0.15)',
+                transition:'left 0.6s ease-out',
+              }} />
+            )}
+          </div>
+          {/* 라벨 */}
+          <div style={{display:'flex', justifyContent:'space-between', marginTop:6}}>
+            <span style={{fontSize:'0.68rem', color:'var(--c-gray-400)', fontFamily:'var(--font-mono)'}}>
+              📅 {fmtDate(open)}
+            </span>
+            <span style={{fontSize:'0.68rem', color:urgency === 'expired' ? '#DC2626' : 'var(--c-gray-400)',
+              fontFamily:'var(--font-mono)', fontWeight:urgency === 'critical' || urgency === 'expired' ? 700 : 400}}>
+              🏁 {fmtDate(exp)}
+            </span>
+          </div>
+        </div>
+      )}
+
+      {/* 마감일만 있는 경우 (개설일 없음) */}
+      {!open && exp && (
+        <div style={{display:'flex', alignItems:'center', gap:6, fontSize:'0.74rem', color:'var(--c-gray-400)'}}>
+          <span>🏁 마감: <strong style={{fontFamily:'var(--font-mono)', color:'var(--c-gray-600)'}}>{fmtDate(exp)}</strong></span>
+        </div>
+      )}
+
+      {/* 개설일만 있는 경우 (마감일 없음) */}
+      {open && !exp && (
+        <div style={{display:'flex', alignItems:'center', gap:6, fontSize:'0.74rem', color:'var(--c-gray-400)'}}>
+          <span>📅 개설: <strong style={{fontFamily:'var(--font-mono)', color:'var(--c-gray-600)'}}>{fmtDate(open)}</strong></span>
+          <span>· 보유 {diffDays(open, today)}일째</span>
+        </div>
+      )}
     </div>
   );
 }
@@ -1140,6 +1579,8 @@ function App() {
   const [pointsList, setPointsList] = useState([]);
   const [selProgram, setSelProgram] = useState('');
   const [selPoints, setSelPoints] = useState('');
+  const [selOpenDate, setSelOpenDate] = useState('');
+  const [selExpDate, setSelExpDate] = useState('');
   const [result, setResult] = useState(null);
   const [loading, setLoading] = useState(false);
   const [sortMode, setSortMode] = useState('class');
@@ -1172,13 +1613,13 @@ function App() {
     if (!selProgram || !pts || pts <= 0) return;
     const existing = pointsList.find(p => p.program === selProgram);
     if (existing) {
-      setPointsList(pointsList.map(p => p.program === selProgram ? {...p, points:pts} : p));
+      setPointsList(pointsList.map(p => p.program === selProgram ? {...p, points:pts, openDate:selOpenDate||p.openDate, expDate:selExpDate||p.expDate} : p));
       showToast(`${selProgram} 포인트가 업데이트되었습니다`, 'warn');
     } else {
-      setPointsList([...pointsList, {program:selProgram, points:pts}]);
+      setPointsList([...pointsList, {program:selProgram, points:pts, openDate:selOpenDate, expDate:selExpDate}]);
       showToast(`${selProgram} 추가 완료`, 'success');
     }
-    setSelProgram(''); setSelPoints('');
+    setSelProgram(''); setSelPoints(''); setSelOpenDate(''); setSelExpDate('');
   }
 
   function analyze() {
@@ -1322,6 +1763,7 @@ function App() {
     setTripType('oneway');
     setLayovers([]); setLayoverSearch('');
     setPassengers(1); setPointsList([]); setSelProgram(''); setSelPoints('');
+    setSelOpenDate(''); setSelExpDate('');
     setResult(null); setSortMode('class');
     setBookedTickets([]);
   }
@@ -1426,7 +1868,7 @@ function App() {
       {/* ── 헤더 ── */}
       <div style={{textAlign:'center', marginBottom:40, paddingBottom:24, borderBottom:'2px solid var(--c-gray-100)'}}>
         <div style={{fontSize:'0.78rem', fontWeight:600, color:'var(--c-accent)', letterSpacing:'0.1em',
-          textTransform:'uppercase', marginBottom:8}}>여공법 · Award Travel Planner</div>
+          textTransform:'uppercase', marginBottom:8}}>여공법 · Award Travel Planner v2.0</div>
         <h1 className="header-title" style={{fontSize:'2rem', fontWeight:900, color:'var(--c-gray-900)',
           letterSpacing:'-0.03em', marginBottom:10, lineHeight:1.3}}>
           마일/포인트 발권 플래너
@@ -1635,6 +2077,29 @@ function App() {
                 aria-label="포인트 수량" />
               <button onClick={addPoints} className="btn btn-primary" style={{minWidth:70}}>추가</button>
             </div>
+            {/* 날짜 입력 (선택) */}
+            <div style={{display:'flex', gap:10, flexWrap:'wrap', marginTop:12}}>
+              <div style={{flex:1, minWidth:150}}>
+                <label style={{fontSize:'0.76rem', fontWeight:600, color:'var(--c-gray-400)',
+                  display:'block', marginBottom:4}}>
+                  📅 카드 개설일 <span style={{fontWeight:400}}>(선택)</span>
+                </label>
+                <input type="date" value={selOpenDate}
+                  onChange={e => setSelOpenDate(e.target.value)}
+                  className="input"
+                  style={{fontSize:'0.85rem', padding:'9px 12px'}} />
+              </div>
+              <div style={{flex:1, minWidth:150}}>
+                <label style={{fontSize:'0.76rem', fontWeight:600, color:'var(--c-gray-400)',
+                  display:'block', marginBottom:4}}>
+                  🏁 포인트 마감일 <span style={{fontWeight:400}}>(선택)</span>
+                </label>
+                <input type="date" value={selExpDate}
+                  onChange={e => setSelExpDate(e.target.value)}
+                  className="input"
+                  style={{fontSize:'0.85rem', padding:'9px 12px'}} />
+              </div>
+            </div>
           </div>
 
           {/* 추가된 포인트 목록 */}
@@ -1643,20 +2108,24 @@ function App() {
               {pointsList.map((item) => {
                 const prog = PROGRAM_MAP[item.program];
                 return (
-                  <div key={item.program} className="points-item fade-up">
-                    <div style={{display:'flex', alignItems:'center', gap:12}}>
-                      <div className="points-item-icon" style={{background: prog ? prog.color : '#888'}}>
-                        {prog ? prog.code.slice(0,4) : '?'}
-                      </div>
-                      <div>
-                        <div style={{fontWeight:600, fontSize:'0.92rem', color:'var(--c-gray-800)'}}>{item.program}</div>
-                        <div style={{fontSize:'0.88rem', color:'var(--c-primary)', fontFamily:'var(--font-mono)', fontWeight:500}}>
-                          {formatNumber(item.points)} P
+                  <div key={item.program} className="points-item fade-up"
+                    style={{flexDirection:'column', alignItems:'stretch', gap:0}}>
+                    <div style={{display:'flex', alignItems:'center', justifyContent:'space-between'}}>
+                      <div style={{display:'flex', alignItems:'center', gap:12}}>
+                        <div className="points-item-icon" style={{background: prog ? prog.color : '#888'}}>
+                          {prog ? prog.code.slice(0,4) : '?'}
+                        </div>
+                        <div>
+                          <div style={{fontWeight:600, fontSize:'0.92rem', color:'var(--c-gray-800)'}}>{item.program}</div>
+                          <div style={{fontSize:'0.88rem', color:'var(--c-primary)', fontFamily:'var(--font-mono)', fontWeight:500}}>
+                            {formatNumber(item.points)} P
+                          </div>
                         </div>
                       </div>
+                      <button onClick={() => setPointsList(pointsList.filter(p => p.program !== item.program))}
+                        className="btn btn-outline btn-sm">삭제</button>
                     </div>
-                    <button onClick={() => setPointsList(pointsList.filter(p => p.program !== item.program))}
-                      className="btn btn-outline btn-sm">삭제</button>
+                    <PointsTimeline openDate={item.openDate} expDate={item.expDate} />
                   </div>
                 );
               })}
@@ -1921,6 +2390,9 @@ function App() {
               </div>
             </div>
           )}
+
+          {/* v2.0: 스윗스팟 추천 */}
+          <SweetSpotPanel zoneKey={result.zKey} />
 
           {/* 결과 카드 */}
           {sortedRows.map((r, idx) => (
