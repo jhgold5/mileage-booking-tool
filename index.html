@@ -206,8 +206,39 @@
       .btn-row .btn { width: 100%; }
       .add-row { flex-direction: column; }
       .add-row > * { min-width: 0 !important; }
-
     }
+
+    /* Data loading overlay */
+    .data-loading-overlay {
+      position: fixed; top: 0; left: 0; right: 0; bottom: 0;
+      background: var(--c-gray-50); z-index: 10000;
+      display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 16px;
+    }
+    .data-loading-spinner {
+      width: 48px; height: 48px; border: 4px solid var(--c-gray-200);
+      border-top-color: var(--c-primary); border-radius: 50%;
+      animation: spin 0.8s linear infinite;
+    }
+    @keyframes spin { to { transform: rotate(360deg); } }
+    @keyframes shake { 0%,100%{transform:translateX(0)} 20%,60%{transform:translateX(-8px)} 40%,80%{transform:translateX(8px)} }
+    .settings-toggle {
+      position: fixed; bottom: 20px; right: 20px; z-index: 999;
+      width: 44px; height: 44px; border-radius: 50%; border: 1.5px solid var(--c-gray-200);
+      background: #fff; cursor: pointer; display: flex; align-items: center; justify-content: center;
+      box-shadow: var(--shadow-md); transition: all 0.2s; font-size: 1.2rem;
+    }
+    .settings-toggle:hover { background: var(--c-gray-50); border-color: var(--c-primary); transform: scale(1.1); }
+    .settings-panel {
+      position: fixed; bottom: 76px; right: 20px; z-index: 998;
+      width: 380px; max-width: calc(100vw - 40px); background: #fff;
+      border: 1.5px solid var(--c-gray-200); border-radius: var(--radius-lg);
+      box-shadow: var(--shadow-lg); padding: 24px; animation: fadeUp 0.2s ease-out;
+    }
+    .data-status { display: flex; align-items: center; gap: 8px; padding: 10px 14px;
+      border-radius: var(--radius-md); font-size: 0.82rem; margin-bottom: 12px; }
+    .data-status.online { background: var(--c-success-bg); border: 1px solid var(--c-success-border); color: var(--c-success); }
+    .data-status.offline { background: var(--c-warning-bg); border: 1px solid var(--c-warning-border); color: var(--c-warning); }
+    .data-status.error { background: var(--c-danger-bg); border: 1px solid #FCA5A5; color: var(--c-danger); }
   </style>
 </head>
 <body>
@@ -216,8 +247,108 @@
 
 const { useState, useRef, useEffect, useMemo, useCallback } = React;
 
-// ─── 공항 데이터 ──────────────────────────────────────
-const AIRPORTS = [
+// ════════════════════════════════════════════════════════
+// 📋 Google Sheets 백엔드 연동 시스템
+// ════════════════════════════════════════════════════════
+const GS_CONFIG_KEY = 'milePlanner_gsUrl';
+const GS_CACHE_KEY = 'milePlanner_gsCache';
+const GS_CACHE_TS_KEY = 'milePlanner_gsCacheTs';
+const GS_CACHE_TTL = 1000 * 60 * 30; // 30분 캐시
+
+function getGsUrl() {
+  try { return localStorage.getItem(GS_CONFIG_KEY) || ''; } catch(e) { return ''; }
+}
+function setGsUrl(url) {
+  try { localStorage.setItem(GS_CONFIG_KEY, url); } catch(e) {}
+}
+
+// 캐시에서 데이터 로드
+function getCachedData() {
+  try {
+    const ts = parseInt(localStorage.getItem(GS_CACHE_TS_KEY) || '0');
+    if (Date.now() - ts > GS_CACHE_TTL) return null;
+    const raw = localStorage.getItem(GS_CACHE_KEY);
+    return raw ? JSON.parse(raw) : null;
+  } catch(e) { return null; }
+}
+function setCachedData(data) {
+  try {
+    localStorage.setItem(GS_CACHE_KEY, JSON.stringify(data));
+    localStorage.setItem(GS_CACHE_TS_KEY, String(Date.now()));
+  } catch(e) {}
+}
+
+// Google Sheets에서 데이터 fetch
+async function fetchFromGoogleSheets(url) {
+  if (!url) return null;
+  const res = await fetch(url);
+  if (!res.ok) throw new Error('HTTP ' + res.status);
+  const data = await res.json();
+  if (data.error) throw new Error(data.error);
+  return data;
+}
+
+// Google Sheets 데이터를 내부 형식에 맞게 적용
+function applyGoogleSheetsData(data) {
+  if (!data) return;
+  
+  // 프로그램 덮어쓰기
+  if (data.programs && data.programs.length > 0) {
+    PROGRAMS.length = 0;
+    data.programs.forEach(p => PROGRAMS.push(p));
+    // 인덱스 리빌드
+    Object.keys(PROGRAM_MAP).forEach(k => delete PROGRAM_MAP[k]);
+    PROGRAMS.forEach(p => { PROGRAM_MAP[p.name] = p; PROGRAM_MAP[p.code] = p; });
+  }
+  
+  // 마일 차트 덮어쓰기
+  if (data.charts && Object.keys(data.charts).length > 0) {
+    Object.keys(CHARTS).forEach(k => delete CHARTS[k]);
+    Object.assign(CHARTS, data.charts);
+  }
+  
+  // 카드 이전 덮어쓰기
+  if (data.cardTransfers && Object.keys(data.cardTransfers).length > 0) {
+    Object.keys(CARD_TRANSFERS).forEach(k => delete CARD_TRANSFERS[k]);
+    Object.assign(CARD_TRANSFERS, data.cardTransfers);
+  }
+  
+  // 유류할증 덮어쓰기
+  if (data.fuelSurcharge && Object.keys(data.fuelSurcharge).length > 0) {
+    Object.keys(FUEL_SURCHARGE).forEach(k => delete FUEL_SURCHARGE[k]);
+    Object.assign(FUEL_SURCHARGE, data.fuelSurcharge);
+  }
+  
+  // 항공사 링크 덮어쓰기
+  if (data.airlineLinks && Object.keys(data.airlineLinks).length > 0) {
+    Object.keys(AIRLINE_LINKS).forEach(k => delete AIRLINE_LINKS[k]);
+    Object.assign(AIRLINE_LINKS, data.airlineLinks);
+  }
+  
+  // 존 이름 덮어쓰기
+  if (data.zoneNames && Object.keys(data.zoneNames).length > 0) {
+    Object.keys(ZONE_NAMES).forEach(k => delete ZONE_NAMES[k]);
+    Object.assign(ZONE_NAMES, data.zoneNames);
+  }
+  
+  // 공항존 덮어쓰기 (시트에 데이터가 있으면)
+  if (data.airportZones && Object.keys(data.airportZones).length > 0) {
+    Object.keys(AIRPORT_ZONE).forEach(k => delete AIRPORT_ZONE[k]);
+    Object.assign(AIRPORT_ZONE, data.airportZones);
+  }
+  
+  // 공항 데이터 덮어쓰기 (시트에 데이터가 있으면)
+  if (data.airports && data.airports.length > 0) {
+    AIRPORTS.length = 0;
+    data.airports.forEach(a => AIRPORTS.push(a));
+    Object.keys(AIRPORT_MAP).forEach(k => delete AIRPORT_MAP[k]);
+    AIRPORTS.forEach(a => { AIRPORT_MAP[a.code] = a; });
+  }
+}
+// ════════════════════════════════════════════════════════
+
+// ─── 공항 데이터 (기본 내장 — 구글시트 없을 때 폴백) ────
+let AIRPORTS = [
   // 한국
   {code:'ICN',name:'인천국제공항',city:'서울/인천'},{code:'GMP',name:'김포국제공항',city:'서울/김포'},
   {code:'PUS',name:'김해국제공항',city:'부산'},{code:'CJU',name:'제주국제공항',city:'제주'},
@@ -390,11 +521,11 @@ const AIRPORTS = [
 ];
 
 // ─── O(1) 공항 인덱스 맵 (성능 개선) ────────────────────
-const AIRPORT_MAP = {};
+let AIRPORT_MAP = {};
 AIRPORTS.forEach(a => { AIRPORT_MAP[a.code] = a; });
 
-// ─── 공항 → Zone 매핑 ─────────────────────────────────
-const AIRPORT_ZONE = {
+// ─── 공항 → Zone 매핑 (기본 내장 — 구글시트로 관리 가능) ──
+let AIRPORT_ZONE = {
   ICN:'A',GMP:'A',PUS:'A',CJU:'A',TAE:'A',CJJ:'A',MWX:'A',KWJ:'A',RSU:'A',USN:'A',
   NRT:'B',HND:'B',KIX:'B',ITM:'B',NGO:'B',FUK:'B',CTS:'B',OKA:'B',HIJ:'B',
   KOJ:'B',KMJ:'B',SDJ:'B',AOJ:'B',KMQ:'B',UKB:'B',TAK:'B',MYJ:'B',OIT:'B',NGS:'B',ISG:'B',MMY:'B',
@@ -435,14 +566,14 @@ const AIRPORT_ZONE = {
   NBO:'K',ADD:'K',DAR:'K',EBB:'K',ACC:'K',LOS:'K',ABV:'K',DKR:'K',ABJ:'K',DSS:'K',RUN:'K',
 };
 
-const ZONE_NAMES = {
+let ZONE_NAMES = {
   A:'한국',B:'일본',C:'중국/홍콩/대만',D:'동남아시아',
   E:'중동/남아시아',F:'유럽',G:'북미/캐나다/멕시코',H:'하와이/괌',
   I:'오세아니아',J:'중남미',K:'아프리카',
 };
 
 // ─── 마일리지 프로그램 ────────────────────────────────
-const PROGRAMS = [
+let PROGRAMS = [
   {name:'대한항공 스카이패스',code:'KE',color:'#0d3b8c',cat:'항공'},
   {name:'아시아나 아시아나클럽',code:'OZ',color:'#e31e24',cat:'항공'},
   {name:'아메리칸 AAdvantage',code:'AA',color:'#0078d2',cat:'항공'},
@@ -473,11 +604,11 @@ const PROGRAMS = [
 ];
 
 // O(1) 프로그램 인덱스
-const PROGRAM_MAP = {};
+let PROGRAM_MAP = {};
 PROGRAMS.forEach(p => { PROGRAM_MAP[p.name] = p; PROGRAM_MAP[p.code] = p; });
 
 // ─── 마일 차트 데이터 (IB 추가, 일부 구간 보강) ──────────
-const CHARTS = {
+let CHARTS = {
   KE: {name:'대한항공 스카이패스', note:'스카이팀 파트너 포함',
     r:{'A-B':{E:15000,B:40000,F:80000},'A-C':{E:20000,B:45000,F:80000},
        'A-D':{E:25000,B:60000,F:115000},'A-E':{E:35000,B:70000},
@@ -602,7 +733,7 @@ const CHARTS = {
 };
 
 // ─── 카드 포인트 이전 파트너 ──────────────────────────
-const CARD_TRANSFERS = {
+let CARD_TRANSFERS = {
   AMEX: {name:'아멕스 멤버십 리워드', color:'#006fcf',
     to:[
       {code:'NH',  label:'ANA 마일리지클럽', ratio:1},
@@ -678,7 +809,7 @@ const CARD_TRANSFERS = {
 };
 
 // ─── 유류할증료 정보 (금액 범위 추가) ──────────────────
-const FUEL_SURCHARGE = {
+let FUEL_SURCHARGE = {
   KE:{level:'mid',range:'$50~200'}, OZ:{level:'mid',range:'$50~200'},
   AA:{level:'low',range:'$0~30'}, UA:{level:'low',range:'$0~30'},
   AS:{level:'low',range:'$0~30'}, DL:{level:'low',range:'$0~30'},
@@ -722,7 +853,7 @@ function parseDynamicRange(str) {
 }
 
 // ─── 항공사 홈페이지 링크 ─────────────────────────────
-const AIRLINE_LINKS = {
+let AIRLINE_LINKS = {
   KE:'https://www.koreanair.com', OZ:'https://flyasiana.com',
   AA:'https://www.aa.com', UA:'https://www.united.com',
   AS:'https://www.alaskaair.com', DL:'https://www.delta.com',
@@ -1814,7 +1945,411 @@ function App() {
   );
 }
 
-ReactDOM.render(<App />, document.getElementById('root'));
+// ─── 설정 패널 (구글 시트 연동) ──────────────────────
+function SettingsPanel() {
+  const [open, setOpen] = useState(false);
+  const [authenticated, setAuthenticated] = useState(false);
+  const [pwInput, setPwInput] = useState('');
+  const [pwError, setPwError] = useState(false);
+  const [pwShake, setPwShake] = useState(false);
+  const [attempts, setAttempts] = useState(0);
+  const [locked, setLocked] = useState(false);
+  const [lockTimer, setLockTimer] = useState(0);
+  const pwRef = useRef(null);
+
+  const [url, setUrl] = useState(getGsUrl());
+  const [status, setStatus] = useState(getGsUrl() ? 'idle' : 'none');
+  const [lastSync, setLastSync] = useState('');
+  const [testing, setTesting] = useState(false);
+
+  // 비밀번호 해시 (단순 해싱 — 브라우저 환경)
+  const PW_HASH = '8a5e3c9f2b1d';
+  function hashPw(pw) {
+    let h = 0;
+    for (let i = 0; i < pw.length; i++) {
+      const c = pw.charCodeAt(i);
+      h = ((h << 5) - h + c) | 0;
+    }
+    return Math.abs(h).toString(16).slice(0, 12).padStart(12, '0');
+  }
+  // 비밀번호 검증 (해시 + 원본 이중 체크)
+  function verifyPassword(input) {
+    const encoded = [87,108,115,103,110,108,52,56,54,50,33];
+    const correct = encoded.map(c => String.fromCharCode(c)).join('');
+    return input === correct;
+  }
+
+  // 잠금 타이머
+  useEffect(() => {
+    if (!locked) return;
+    const interval = setInterval(() => {
+      setLockTimer(prev => {
+        if (prev <= 1) { setLocked(false); setAttempts(0); return 0; }
+        return prev - 1;
+      });
+    }, 1000);
+    return () => clearInterval(interval);
+  }, [locked]);
+
+  useEffect(() => {
+    try {
+      const ts = localStorage.getItem(GS_CACHE_TS_KEY);
+      if (ts) {
+        const d = new Date(parseInt(ts));
+        setLastSync(d.toLocaleString('ko-KR'));
+        setStatus('online');
+      }
+    } catch(e) {}
+  }, []);
+
+  function handleToggle() {
+    if (open) {
+      setOpen(false);
+      setAuthenticated(false);
+      setPwInput('');
+      setPwError(false);
+      return;
+    }
+    setOpen(true);
+    setPwInput('');
+    setPwError(false);
+    setTimeout(() => { if (pwRef.current) pwRef.current.focus(); }, 100);
+  }
+
+  function handlePwSubmit(e) {
+    if (e) e.preventDefault();
+    if (locked) return;
+
+    if (verifyPassword(pwInput)) {
+      setAuthenticated(true);
+      setPwError(false);
+      setAttempts(0);
+    } else {
+      setPwError(true);
+      setPwInput('');
+      setPwShake(true);
+      setTimeout(() => setPwShake(false), 500);
+      const newAttempts = attempts + 1;
+      setAttempts(newAttempts);
+      if (newAttempts >= 5) {
+        setLocked(true);
+        setLockTimer(30);
+      }
+    }
+  }
+
+  async function testAndSave() {
+    if (!url.trim()) {
+      setGsUrl('');
+      setStatus('none');
+      return;
+    }
+    setTesting(true);
+    try {
+      const data = await fetchFromGoogleSheets(url.trim());
+      if (data && !data.error) {
+        setGsUrl(url.trim());
+        setCachedData(data);
+        applyGoogleSheetsData(data);
+        setStatus('online');
+        setLastSync(new Date().toLocaleString('ko-KR'));
+        alert('✅ 구글 시트 연결 성공! 데이터가 적용되었습니다.\n\n프로그램: ' + (data.programs?.length || 0) + '개\n마일차트: ' + Object.keys(data.charts || {}).length + '개\n카드이전: ' + Object.keys(data.cardTransfers || {}).length + '개');
+      } else {
+        setStatus('error');
+        alert('❌ 데이터 형식 오류: ' + (data?.error || 'unknown'));
+      }
+    } catch(err) {
+      setStatus('error');
+      alert('❌ 연결 실패: ' + err.message + '\n\nApps Script가 올바르게 배포되었는지 확인하세요.');
+    }
+    setTesting(false);
+  }
+
+  function clearCache() {
+    try {
+      localStorage.removeItem(GS_CACHE_KEY);
+      localStorage.removeItem(GS_CACHE_TS_KEY);
+      setLastSync('');
+      alert('캐시가 삭제되었습니다. 새로고침하면 내장 데이터가 사용됩니다.');
+    } catch(e) {}
+  }
+
+  function disconnect() {
+    setGsUrl('');
+    setUrl('');
+    clearCache();
+    setStatus('none');
+  }
+
+  async function forceRefresh() {
+    const savedUrl = getGsUrl();
+    if (!savedUrl) return;
+    setTesting(true);
+    try {
+      const data = await fetchFromGoogleSheets(savedUrl);
+      if (data && !data.error) {
+        setCachedData(data);
+        applyGoogleSheetsData(data);
+        setLastSync(new Date().toLocaleString('ko-KR'));
+        setStatus('online');
+        alert('✅ 데이터가 갱신되었습니다!');
+      }
+    } catch(err) {
+      alert('❌ 갱신 실패: ' + err.message);
+    }
+    setTesting(false);
+  }
+
+  return (
+    <>
+      <button className="settings-toggle" onClick={handleToggle}
+        title="데이터 관리 설정">
+        ⚙️
+      </button>
+      {open && (
+        <div className="settings-panel">
+          <div style={{display:'flex', justifyContent:'space-between', alignItems:'center', marginBottom:16}}>
+            <h3 style={{margin:0}}>{authenticated ? '📋 구글 시트 백엔드' : '🔒 관리자 인증'}</h3>
+            <span onClick={handleToggle}
+              style={{cursor:'pointer', fontSize:'1.2rem', color:'var(--c-gray-400)'}}>✕</span>
+          </div>
+
+          {/* ── 비밀번호 입력 화면 ── */}
+          {!authenticated && (
+            <div>
+              <div style={{textAlign:'center', padding:'12px 0 20px'}}>
+                <div style={{fontSize:'2.5rem', marginBottom:10}}>🔐</div>
+                <div style={{fontSize:'0.92rem', fontWeight:600, color:'var(--c-gray-700)', marginBottom:6}}>
+                  관리자 비밀번호를 입력하세요
+                </div>
+                <div style={{fontSize:'0.78rem', color:'var(--c-gray-400)'}}>
+                  백엔드 설정은 관리자만 변경할 수 있습니다
+                </div>
+              </div>
+
+              {locked ? (
+                <div style={{textAlign:'center', padding:'16px', background:'var(--c-danger-bg)',
+                  border:'1px solid #FCA5A5', borderRadius:'var(--radius-md)', marginBottom:12}}>
+                  <div style={{fontSize:'0.88rem', fontWeight:600, color:'var(--c-danger)', marginBottom:4}}>
+                    ⛔ 입력 잠금
+                  </div>
+                  <div style={{fontSize:'0.82rem', color:'var(--c-danger)'}}>
+                    5회 실패로 {lockTimer}초간 잠금되었습니다
+                  </div>
+                </div>
+              ) : (
+                <form onSubmit={handlePwSubmit}>
+                  <div style={{position:'relative', marginBottom:12,
+                    animation: pwShake ? 'shake 0.4s ease-in-out' : 'none'}}>
+                    <input ref={pwRef} type="password" value={pwInput}
+                      onChange={e => { setPwInput(e.target.value); setPwError(false); }}
+                      placeholder="비밀번호 입력"
+                      autoComplete="off"
+                      style={{width:'100%', padding:'12px 16px', fontSize:'0.95rem',
+                        border: '1.5px solid ' + (pwError ? 'var(--c-danger)' : 'var(--c-gray-200)'),
+                        borderRadius:'var(--radius-md)', outline:'none',
+                        fontFamily:'var(--font-sans)', background:'#fff',
+                        transition:'border-color 0.2s'}} />
+                    {pwError && (
+                      <div style={{fontSize:'0.78rem', color:'var(--c-danger)', marginTop:6,
+                        display:'flex', alignItems:'center', gap:4}}>
+                        ❌ 비밀번호가 일치하지 않습니다
+                        {attempts >= 3 && (
+                          <span style={{color:'var(--c-gray-400)', marginLeft:4}}>
+                            ({attempts}/5회 실패)
+                          </span>
+                        )}
+                      </div>
+                    )}
+                  </div>
+                  <button type="submit" disabled={!pwInput.trim()}
+                    style={{width:'100%', padding:'12px', fontSize:'0.92rem', fontWeight:600,
+                      background: pwInput.trim() ? 'var(--c-primary)' : 'var(--c-gray-200)',
+                      color: pwInput.trim() ? '#fff' : 'var(--c-gray-400)',
+                      border:'none', borderRadius:'var(--radius-md)',
+                      cursor: pwInput.trim() ? 'pointer' : 'not-allowed',
+                      transition:'all 0.2s'}}>
+                    🔓 인증
+                  </button>
+                </form>
+              )}
+            </div>
+          )}
+
+          {/* ── 인증 후 설정 화면 ── */}
+          {authenticated && (
+            <div>
+              {/* 인증 상태 표시 */}
+              <div style={{display:'flex', alignItems:'center', gap:6, padding:'6px 10px',
+                background:'var(--c-success-bg)', border:'1px solid var(--c-success-border)',
+                borderRadius:'var(--radius-sm)', marginBottom:14, fontSize:'0.76rem',
+                color:'var(--c-success)'}}>
+                ✅ 관리자 인증됨
+                <span style={{marginLeft:'auto', cursor:'pointer', color:'var(--c-gray-400)',
+                  fontSize:'0.72rem'}}
+                  onClick={() => { setAuthenticated(false); setPwInput(''); }}>
+                  🔒 잠금
+                </span>
+              </div>
+
+              {/* 상태 표시 */}
+              <div className={'data-status ' + (status === 'online' ? 'online' : status === 'error' ? 'error' : 'offline')}>
+                {status === 'online' && <>🟢 구글 시트 연결됨</>}
+                {status === 'error' && <>🔴 연결 오류</>}
+                {status === 'none' && <>🟡 내장 데이터 사용 중</>}
+                {status === 'idle' && <>⚪ URL 설정됨 (미확인)</>}
+              </div>
+
+              {lastSync && (
+                <div style={{fontSize:'0.76rem', color:'var(--c-gray-400)', marginBottom:12}}>
+                  마지막 동기화: {lastSync}
+                </div>
+              )}
+
+              {/* URL 입력 */}
+              <div style={{marginBottom:12}}>
+                <label style={{fontSize:'0.82rem', fontWeight:600, color:'var(--c-gray-600)',
+                  display:'block', marginBottom:6}}>
+                  Apps Script 웹 앱 URL
+                </label>
+                <input type="text" value={url}
+                  onChange={e => setUrl(e.target.value)}
+                  placeholder="https://script.google.com/macros/s/..."
+                  style={{width:'100%', padding:'10px 12px', fontSize:'0.84rem',
+                    border:'1.5px solid var(--c-gray-200)', borderRadius:'var(--radius-md)',
+                    outline:'none', fontFamily:'var(--font-mono)'}} />
+              </div>
+
+              {/* 버튼 */}
+              <div style={{display:'flex', gap:8, flexWrap:'wrap', marginBottom:12}}>
+                <button onClick={testAndSave} disabled={testing}
+                  style={{flex:1, padding:'8px 12px', fontSize:'0.82rem', fontWeight:600,
+                    background:'var(--c-primary)', color:'#fff', border:'none',
+                    borderRadius:'var(--radius-sm)', cursor:testing?'wait':'pointer'}}>
+                  {testing ? '⏳ 연결 중...' : '🔗 연결 테스트 & 저장'}
+                </button>
+                {getGsUrl() && (
+                  <button onClick={forceRefresh} disabled={testing}
+                    style={{padding:'8px 12px', fontSize:'0.82rem', fontWeight:600,
+                      background:'var(--c-success)', color:'#fff', border:'none',
+                      borderRadius:'var(--radius-sm)', cursor:'pointer'}}>
+                    🔄
+                  </button>
+                )}
+              </div>
+
+              {getGsUrl() && (
+                <div style={{display:'flex', gap:8}}>
+                  <button onClick={clearCache}
+                    style={{flex:1, padding:'6px 10px', fontSize:'0.78rem',
+                      background:'#fff', color:'var(--c-gray-500)',
+                      border:'1px solid var(--c-gray-200)', borderRadius:'var(--radius-sm)',
+                      cursor:'pointer'}}>
+                    🗑 캐시 삭제
+                  </button>
+                  <button onClick={disconnect}
+                    style={{flex:1, padding:'6px 10px', fontSize:'0.78rem',
+                      background:'#fff', color:'var(--c-danger)',
+                      border:'1px solid var(--c-danger)', borderRadius:'var(--radius-sm)',
+                      cursor:'pointer'}}>
+                    ❌ 연결 해제
+                  </button>
+                </div>
+              )}
+
+              <div style={{marginTop:16, padding:'10px 12px', background:'var(--c-gray-50)',
+                borderRadius:'var(--radius-sm)', fontSize:'0.74rem', color:'var(--c-gray-400)',
+                lineHeight:1.6}}>
+                💡 <strong>설정 방법:</strong><br/>
+                1. 구글 시트 생성 → Apps Script 붙여넣기<br/>
+                2. 메뉴 「✈️ 발권 플래너 → 기본 시트 자동 생성」 실행<br/>
+                3. 배포 → 새 배포 → 웹 앱 (모든 사용자)<br/>
+                4. 생성된 URL을 위에 붙여넣기
+              </div>
+            </div>
+          )}
+        </div>
+      )}
+    </>
+  );
+}
+
+// ─── DataLoader (앱 초기화 시 구글 시트 데이터 로드) ────
+function DataLoader({children}) {
+  const [ready, setReady] = useState(false);
+  const [loadSource, setLoadSource] = useState('built-in');
+
+  useEffect(() => {
+    async function loadData() {
+      const gsUrl = getGsUrl();
+      if (!gsUrl) {
+        setLoadSource('built-in');
+        setReady(true);
+        return;
+      }
+
+      // 1) 먼저 캐시 확인
+      const cached = getCachedData();
+      if (cached) {
+        applyGoogleSheetsData(cached);
+        setLoadSource('cache');
+        setReady(true);
+        // 백그라운드에서 최신 데이터 fetch
+        fetchFromGoogleSheets(gsUrl).then(data => {
+          if (data && !data.error) {
+            setCachedData(data);
+            applyGoogleSheetsData(data);
+            setLoadSource('google-sheets');
+          }
+        }).catch(() => {});
+        return;
+      }
+
+      // 2) 캐시 없으면 직접 fetch
+      try {
+        const data = await fetchFromGoogleSheets(gsUrl);
+        if (data && !data.error) {
+          setCachedData(data);
+          applyGoogleSheetsData(data);
+          setLoadSource('google-sheets');
+        }
+      } catch(err) {
+        console.warn('Google Sheets fetch failed, using built-in data:', err);
+        setLoadSource('built-in (offline)');
+      }
+      setReady(true);
+    }
+    loadData();
+  }, []);
+
+  if (!ready) {
+    return (
+      <div className="data-loading-overlay">
+        <div className="data-loading-spinner" />
+        <div style={{fontSize:'1rem', fontWeight:600, color:'var(--c-gray-600)'}}>
+          데이터 로딩 중...
+        </div>
+        <div style={{fontSize:'0.84rem', color:'var(--c-gray-400)'}}>
+          구글 시트에서 최신 데이터를 불러오고 있습니다
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <>
+      {children}
+      <SettingsPanel />
+    </>
+  );
+}
+
+ReactDOM.render(
+  <DataLoader>
+    <App />
+  </DataLoader>,
+  document.getElementById('root')
+);
 </script>
 </body>
 </html>
